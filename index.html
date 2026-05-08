@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0b1b33" />
+  <title>OBGFC AFLW Match Tracker</title>
+  <style>
+    :root {
+      --bg: #08111f;
+      --panel: #10233f;
+      --panel-2: #15305a;
+      --line: rgba(255,255,255,0.12);
+      --text: #ffffff;
+      --muted: #9fb0c6;
+      --blue: #58a6ff;
+      --green: #25c06d;
+      --orange: #f5a524;
+      --red: #ef4444;
+      --radius: 14px;
+      --shadow: 0 12px 28px rgba(0,0,0,0.28);
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .app { max-width: 980px; margin: 0 auto; padding-bottom: 88px; }
+    .topbar {
+      position: sticky; top: 0; z-index: 20;
+      background: rgba(8,17,31,0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--line);
+      padding: env(safe-area-inset-top) 14px 12px;
+    }
+    .topbar-inner {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    h1 { margin: 0; font-size: 22px; font-weight: 800; }
+    .sub { margin-top: 4px; color: var(--muted); font-size: 12px; }
+
+    .clock-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .pill {
+      min-width: 62px; text-align: center; padding: 8px 12px; border-radius: 999px;
+      border: 1px solid rgba(88,166,255,0.25); color: var(--blue); background: rgba(88,166,255,0.12);
+      font-size: 12px; font-weight: 800; letter-spacing: 0.05em;
+    }
+    .clock {
+      min-width: 170px; border-radius: var(--radius); background: linear-gradient(180deg, #13305a, #0f2340);
+      border: 1px solid var(--line); box-shadow: var(--shadow); text-align: center; padding: 10px 14px;
+    }
+    .clock .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; }
+    .clock .time { margin-top: 4px; font-size: 34px; line-height: 1; font-weight: 900; color: var(--blue); font-variant-numeric: tabular-nums; }
+
+    .section { padding: 12px 14px 0; }
+    .panel {
+      background: linear-gradient(180deg, rgba(16,35,63,0.98), rgba(14,30,54,0.98));
+      border: 1px solid var(--line); border-radius: var(--radius); box-shadow: var(--shadow);
+    }
+    .panel-head { padding: 14px 14px 0; }
+    .panel-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
+    .panel-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+    .grid-controls, .grid-settings, .grid-summary { display: grid; gap: 10px; padding: 14px; }
+    .grid-controls { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .grid-settings { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid-summary { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+    button, input, textarea { font: inherit; }
+    .btn {
+      min-height: 48px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+      color: var(--text); background: #17345e; cursor: pointer; font-weight: 800;
+    }
+    .btn:active { transform: scale(0.99); }
+    .btn.green { background: rgba(37,192,109,0.15); border-color: rgba(37,192,109,0.35); color: #9af0be; }
+    .btn.orange { background: rgba(245,165,36,0.16); border-color: rgba(245,165,36,0.35); color: #ffd18a; }
+    .btn.red { background: rgba(239,68,68,0.16); border-color: rgba(239,68,68,0.35); color: #ffb3b3; }
+    .btn.blue { background: rgba(88,166,255,0.15); border-color: rgba(88,166,255,0.32); color: #d2e7ff; }
+    .btn.ghost { background: transparent; }
+    .btn.small { min-height: 40px; padding: 10px 12px; font-size: 13px; }
+
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 12px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+    .field input, .field textarea {
+      width: 100%; background: rgba(255,255,255,0.04); color: var(--text); border: 1px solid var(--line);
+      border-radius: 12px; padding: 12px; outline: none;
+    }
+    .field textarea { min-height: 120px; resize: vertical; }
+
+    .mini {
+      background: rgba(255,255,255,0.03); border: 1px solid var(--line); border-radius: 14px; padding: 12px; text-align: center;
+    }
+    .mini .label { font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+    .mini .value { margin-top: 6px; font-size: 24px; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+    .players-panel { padding: 14px; }
+    .players-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .players-head h2 { margin: 0; font-size: 16px; font-weight: 800; }
+    .players-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .empty {
+      padding: 30px 18px; text-align: center; color: var(--muted); border: 1px dashed rgba(255,255,255,0.16);
+      border-radius: 12px; background: rgba(255,255,255,0.02);
+    }
+    .players-list { display: grid; gap: 10px; }
+
+    .card {
+      border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
+      background: linear-gradient(180deg, #112542, #173156); transition: border-color 0.2s ease;
+    }
+    .card.on-ground { border-color: rgba(37,192,109,0.35); }
+    .card.warning { border-color: rgba(245,165,36,0.45); }
+    .card.danger { border-color: rgba(239,68,68,0.50); box-shadow: 0 0 18px rgba(239,68,68,0.08); }
+
+    .card-main { display: grid; grid-template-columns: 72px 1fr auto; gap: 12px; align-items: center; padding: 12px; }
+    .toggle {
+      width: 72px; height: 56px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.14); cursor: pointer;
+      background: rgba(255,255,255,0.04); color: var(--muted); font-weight: 900;
+    }
+    .toggle.active { background: rgba(37,192,109,0.14); color: #9af0be; border-color: rgba(37,192,109,0.38); }
+
+    .name { font-size: 18px; font-weight: 900; line-height: 1.15; word-break: break-word; }
+    .card.warning .name { color: #ffd18a; }
+    .card.danger .name { color: #ffafaf; }
+    .meta { margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+    .meta strong { color: var(--text); font-variant-numeric: tabular-nums; }
+    .meta .stint strong { color: #9af0be; }
+    .card.warning .meta .stint strong { color: #ffd18a; }
+    .card.danger .meta .stint strong { color: #ffafaf; }
+
+    .bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.08); margin-top: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, var(--green), #89eeb6); }
+    .card.warning .bar-fill { background: linear-gradient(90deg, var(--orange), #ffd18a); }
+    .card.danger .bar-fill { background: linear-gradient(90deg, var(--red), #ffafaf); }
+
+    .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; padding: 0 12px 12px; }
+    .stat {
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; background: rgba(255,255,255,0.04);
+      padding: 10px 8px; min-height: 70px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px;
+    }
+    .stat-label { font-size: 11px; color: var(--muted); font-weight: 800; letter-spacing: 0.05em; }
+    .stat-value { font-size: 22px; font-weight: 900; line-height: 1; }
+    .stat-sub { font-size: 11px; color: #ffafaf; font-weight: 700; }
+
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 100;
+    }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(100%, 860px); background: linear-gradient(180deg, #12294b, #0f2444); border: 1px solid var(--line);
+      border-radius: 18px; box-shadow: var(--shadow); padding: 16px;
+    }
+    .modal-card h3 { margin: 0 0 6px; font-size: 20px; font-weight: 800; }
+    .modal-card p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+
+    .table-wrap { overflow: auto; border: 1px solid var(--line); border-radius: 12px; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 560px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); text-align: left; font-size: 13px; }
+    th { font-size: 11px; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; background: rgba(255,255,255,0.04); }
+    td.num { text-align: center; font-variant-numeric: tabular-nums; }
+
+    .footer { padding: 16px 14px 24px; text-align: center; color: var(--muted); font-size: 12px; }
+    .boot-ok { color: #9af0be; font-weight: 800; }
+    .boot-bad { color: #ffafaf; font-weight: 800; }
+
+    @media (max-width: 880px) {
+      .grid-controls { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .grid-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @media (max-width: 640px) {
+      .card-main { grid-template-columns: 68px 1fr; }
+      .grid-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <h1>🏉 OBGFC AFLW Match Tracker</h1>
+          <div class="sub">GitHub Pages ready • mobile-friendly • saves to your device</div>
+        </div>
+        <div class="clock-wrap">
+          <div class="pill" id="quarterPill">Q1</div>
+          <div class="clock">
+            <div class="label">Match Clock</div>
+            <div class="time" id="matchClock">00:00</div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Game Controls</h2>
+          <p>Use this like a sideline tracker on phone or tablet.</p>
+        </div>
+        <div class="grid-controls">
+          <button id="startPauseBtn" class="btn green">▶ Start Match</button>
+          <button id="nextQuarterBtn" class="btn blue">⏭ Next Quarter</button>
+          <button id="addPlayerBtn" class="btn blue">+ Add Player</button>
+          <button id="bulkAddBtn" class="btn blue">+ Bulk Add</button>
+          <button id="summaryBtn" class="btn blue">📊 Summary</button>
+          <button id="resetBtn" class="btn red">↺ Reset Match</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Fatigue Thresholds</h2>
+          <p>Names shade orange, then red, based on current stint on ground.</p>
+        </div>
+        <div class="grid-settings">
+          <div class="field">
+            <label for="warnMinutes">Warn at (minutes)</label>
+            <input id="warnMinutes" type="number" min="1" max="40" step="1" inputmode="numeric" value="8" />
+          </div>
+          <div class="field">
+            <label for="dangerMinutes">Danger at (minutes)</label>
+            <input id="dangerMinutes" type="number" min="1" max="40" step="1" inputmode="numeric" value="12" />
+          </div>
+          <div class="field">
+            <label for="quarterLength">Quarter length (minutes)</label>
+            <input id="quarterLength" type="number" min="5" max="30" step="1" inputmode="numeric" value="20" />
+          </div>
+          <div class="field">
+            <label>Quick Tip</label>
+            <div style="padding:12px; border-radius:12px; border:1px solid var(--line); background:rgba(255,255,255,0.03); font-size:13px; color:var(--text);">
+              Tap <strong>ON</strong> when a player goes onto the ground. Tap a stat tile to add one event.
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Team Snapshot</h2>
+          <p>At-a-glance totals for match day.</p>
+        </div>
+        <div class="grid-summary">
+          <div class="mini"><div class="label">Players</div><div class="value" id="playersCount">0</div></div>
+          <div class="mini"><div class="label">On Ground</div><div class="value" id="onGroundCount">0</div></div>
+          <div class="mini"><div class="label">Clearances</div><div class="value" id="teamClearances">0</div></div>
+          <div class="mini"><div class="label">Inside 50s / Rebound 50s</div><div class="value" id="teamZones">0 / 0</div></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="panel players-panel">
+        <div class="players-head">
+          <div>
+            <h2>Players</h2>
+            <p>Sorted with on-ground players first, then by total minutes.</p>
+          </div>
+          <button id="clearSavedBtn" class="btn ghost small">Clear saved local data</button>
+        </div>
+        <div id="playersList" class="players-list"></div>
+      </div>
+    </section>
+
+    <div class="footer">
+      Everything saves locally in your browser on this device. If you refresh on the same device, your data stays there until reset or cleared.<br>
+      <span id="bootStatus" class="boot-ok">App loaded successfully.</span>
+    </div>
+  </div>
+
+  <div id="playerModal" class="modal" aria-hidden="true">
+    <div class="modal-card" style="width:min(100%, 520px);">
+      <h3>Add Player</h3>
+      <p>Add one player to the tracker.</p>
+      <form id="playerForm">
+        <div class="field">
+          <label for="playerNameInput">Player name</label>
+          <input id="playerNameInput" type="text" maxlength="60" placeholder="e.g. M. Malone" autocomplete="off" required />
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-close="playerModal">Cancel</button>
+          <button type="submit" class="btn blue">Add Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="bulkModal" class="modal" aria-hidden="true">
+    <div class="modal-card" style="width:min(100%, 520px);">
+      <h3>Bulk Add Players</h3>
+      <p>Paste one name per line. Empty lines are ignored.</p>
+      <form id="bulkForm">
+        <div class="field">
+          <label for="bulkNamesInput">Squad list</label>
+          <textarea id="bulkNamesInput" placeholder="Player 1&#10;Player 2&#10;Player 3"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-close="bulkModal">Cancel</button>
+          <button type="submit" class="btn blue">Add Squad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="summaryModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Match Summary</h3>
+      <p>Use copy or CSV export to share after the game.</p>
+      <div id="summaryWrap" class="table-wrap"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close="summaryModal">Close</button>
+        <button type="button" id="copySummaryBtn" class="btn blue">📋 Copy Summary</button>
+        <button type="button" id="downloadCsvBtn" class="btn blue">⬇ Download CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var STORAGE_KEY = 'obgfc-aflw-tracker-v3';
+      var DEFAULT_STATE = {
+        matchRunning: false,
+        matchSeconds: 0,
+        quarter: 1,
+        quarterLengthMinutes: 20,
+        warnMinutes: 8,
+        dangerMinutes: 12,
+        nextId: 1,
+        players: []
+      };
+
+      function clone(obj) {
+        return JSON.parse(JSON.stringify(obj));
+      }
+
+      function $(id) {
+        return document.getElementById(id);
+      }
+
+      function setBootError(message) {
+        var el = $('bootStatus');
+        if (el) {
+          el.className = 'boot-bad';
+          el.textContent = message;
+        }
+      }
+
+      window.onerror = function (message) {
+        setBootError('JavaScript error: ' + message);
+      };
+
+      var els = {
+        matchClock: $('matchClock'),
+        quarterPill: $('quarterPill'),
+        startPauseBtn: $('startPauseBtn'),
+        nextQuarterBtn: $('nextQuarterBtn'),
+        addPlayerBtn: $('addPlayerBtn'),
+        bulkAddBtn: $('bulkAddBtn'),
+        summaryBtn: $('summaryBtn'),
+        resetBtn: $('resetBtn'),
+        clearSavedBtn: $('clearSavedBtn'),
+        warnMinutes: $('warnMinutes'),
+        dangerMinutes: $('dangerMinutes'),
+        quarterLength: $('quarterLength'),
+        playersCount: $('playersCount'),
+        onGroundCount: $('onGroundCount'),
+        teamClearances: $('teamClearances'),
+        teamZones: $('teamZones'),
+        playersList: $('playersList'),
+        playerModal: $('playerModal'),
+        playerForm: $('playerForm'),
+        playerNameInput: $('playerNameInput'),
+        bulkModal: $('bulkModal'),
+        bulkForm: $('bulkForm'),
+        bulkNamesInput: $('bulkNamesInput'),
+        summaryModal: $('summaryModal'),
+        summaryWrap: $('summaryWrap'),
+        copySummaryBtn: $('copySummaryBtn'),
+        downloadCsvBtn: $('downloadCsvBtn')
+      };
+
+      var state = loadState();
+      var timerId = null;
+
+      function loadState() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return clone(DEFAULT_STATE);
+          var parsed = JSON.parse(raw);
+          var base = clone(DEFAULT_STATE);
+          for (var key in parsed) {
+            if (Object.prototype.hasOwnProperty.call(parsed, key)) {
+              base[key] = parsed[key];
+            }
+          }
+          if (!Array.isArray(base.players)) base.players = [];
+          return base;
+        } catch (e) {
+          return clone(DEFAULT_STATE);
+        }
+      }
+
+      function saveState() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        } catch (e) {
+          console && console.warn && console.warn('Unable to save state', e);
+        }
+      }
+
+      function clamp(value, min, max, fallback) {
+        var num = parseInt(value, 10);
+        if (isNaN(num)) return fallback;
+        if (num < min) return min;
+        if (num > max) return max;
+        return num;
+      }
+
+      function formatTime(totalSeconds) {
+        var mins = Math.floor(totalSeconds / 60);
+        var secs = totalSeconds % 60;
+        return String(mins).padStart(2, '0') + ':' + String(secs).padStart(2, '0');
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+      }
+
+      function openModal(modal, focusEl) {
+        modal.classList.add('open');
+        modal.setAttribute('aria-hidden', 'false');
+        if (focusEl) {
+          setTimeout(function () { focusEl.focus(); }, 30);
+        }
+      }
+
+      function closeModal(modal) {
+        modal.classList.remove('open');
+        modal.setAttribute('aria-hidden', 'true');
+      }
+
+      function createPlayer(name) {
+        return {
+          id: state.nextId,
+          name: name,
+          onGround: false,
+          totalSeconds: 0,
+          currentStintSeconds: 0,
+          clearances: 0,
+          inside50s: 0,
+          rebound50s: 0
+        };
+      }
+
+      function bindEvents() {
+        els.startPauseBtn.addEventListener('click', function () {
+          state.matchRunning = !state.matchRunning;
+          saveState();
+          syncTimer();
+          render();
+        });
+
+        els.nextQuarterBtn.addEventListener('click', function () {
+          if (state.quarter < 4) state.quarter += 1;
+          for (var i = 0; i < state.players.length; i++) {
+            state.players[i].onGround = false;
+            state.players[i].currentStintSeconds = 0;
+          }
+          saveState();
+          render();
+        });
+
+        els.addPlayerBtn.addEventListener('click', function () {
+          openModal(els.playerModal, els.playerNameInput);
+        });
+
+        els.bulkAddBtn.addEventListener('click', function () {
+          openModal(els.bulkModal, els.bulkNamesInput);
+        });
+
+        els.summaryBtn.addEventListener('click', function () {
+          buildSummary();
+          openModal(els.summaryModal);
+        });
+
+        els.resetBtn.addEventListener('click', function () {
+          if (!window.confirm('Reset the full match and all players/stats?')) return;
+          state = clone(DEFAULT_STATE);
+          hydrateInputs();
+          saveState();
+          syncTimer();
+          render();
+        });
+
+        els.clearSavedBtn.addEventListener('click', function () {
+          if (!window.confirm('Clear saved local data on this device?')) return;
+          localStorage.removeItem(STORAGE_KEY);
+          state = clone(DEFAULT_STATE);
+          hydrateInputs();
+          syncTimer();
+          render();
+        });
+
+        els.warnMinutes.addEventListener('change', function () {
+          var warn = clamp(els.warnMinutes.value, 1, 40, 8);
+          var danger = clamp(els.dangerMinutes.value, 1, 40, 12);
+          if (warn > danger) warn = danger;
+          state.warnMinutes = warn;
+          state.dangerMinutes = danger;
+          hydrateInputs();
+          saveState();
+          render();
+        });
+
+        els.dangerMinutes.addEventListener('change', function () {
+          var warn = clamp(els.warnMinutes.value, 1, 40, 8);
+          var danger = clamp(els.dangerMinutes.value, 1, 40, 12);
+          if (danger < warn) danger = warn;
+          state.warnMinutes = warn;
+          state.dangerMinutes = danger;
+          hydrateInputs();
+          saveState();
+          render();
+        });
+
+        els.quarterLength.addEventListener('change', function () {
+          state.quarterLengthMinutes = clamp(els.quarterLength.value, 5, 30, 20);
+          hydrateInputs();
+          saveState();
+          render();
+        });
+
+        els.playerForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var name = (els.playerNameInput.value || '').trim();
+          if (!name) {
+            els.playerNameInput.focus();
+            return;
+          }
+          state.players.push(createPlayer(name));
+          state.nextId += 1;
+          els.playerForm.reset();
+          closeModal(els.playerModal);
+          saveState();
+          render();
+        });
+
+        els.bulkForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var raw = els.bulkNamesInput.value || '';
+          var lines = raw.split(/\r?\n/);
+          var added = 0;
+          for (var i = 0; i < lines.length; i++) {
+            var name = lines[i].trim();
+            if (!name) continue;
+            state.players.push(createPlayer(name));
+            state.nextId += 1;
+            added += 1;
+          }
+          if (!added) {
+            els.bulkNamesInput.focus();
+            return;
+          }
+          els.bulkForm.reset();
+          closeModal(els.bulkModal);
+          saveState();
+          render();
+        });
+
+        els.copySummaryBtn.addEventListener('click', function () {
+          var text = buildSummaryText();
+          copyText(text);
+        });
+
+        els.downloadCsvBtn.addEventListener('click', function () {
+          var rows = [['Player', 'Total Time', 'Clearances', 'Inside 50s', 'Rebound 50s']];
+          var sorted = state.players.slice().sort(function (a, b) { return b.totalSeconds - a.totalSeconds; });
+          for (var i = 0; i < sorted.length; i++) {
+            rows.push([sorted[i].name, formatTime(sorted[i].totalSeconds), sorted[i].clearances, sorted[i].inside50s, sorted[i].rebound50s]);
+          }
+          var csv = rows.map(function (row) {
+            return row.map(csvEscape).join(',');
+          }).join('\n');
+          var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url;
+          a.download = 'obgfc-aflw-summary-q' + state.quarter + '.csv';
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          URL.revokeObjectURL(url);
+        });
+
+        document.addEventListener('click', function (e) {
+          var closeBtn = e.target.closest('[data-close]');
+          if (closeBtn) {
+            closeModal($(closeBtn.getAttribute('data-close')));
+            return;
+          }
+
+          if (e.target.classList.contains('modal')) {
+            closeModal(e.target);
+            return;
+          }
+
+          var actionEl = e.target.closest('[data-action]');
+          if (!actionEl) return;
+          var action = actionEl.getAttribute('data-action');
+          var id = parseInt(actionEl.getAttribute('data-id'), 10);
+          var stat = actionEl.getAttribute('data-stat');
+          if (isNaN(id)) return;
+
+          if (action === 'toggle') {
+            var p = findPlayer(id);
+            if (!p) return;
+            p.onGround = !p.onGround;
+            p.currentStintSeconds = 0;
+            saveState();
+            render();
+            return;
+          }
+
+          if (action === 'remove') {
+            var player = findPlayer(id);
+            if (!player) return;
+            if (!window.confirm('Remove ' + player.name + '?')) return;
+            state.players = state.players.filter(function (x) { return x.id !== id; });
+            saveState();
+            render();
+            return;
+          }
+
+          if (action === 'stat-add' || action === 'stat-subtract') {
+            var target = findPlayer(id);
+            if (!target) return;
+            if (['clearances','inside50s','rebound50s'].indexOf(stat) === -1) return;
+            var delta = action === 'stat-add' ? 1 : -1;
+            target[stat] = Math.max(0, (parseInt(target[stat], 10) || 0) + delta);
+            saveState();
+            render();
+          }
+        });
+
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape') {
+            closeModal(els.playerModal);
+            closeModal(els.bulkModal);
+            closeModal(els.summaryModal);
+          }
+        });
+      }
+
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(function () {
+            alert('Summary copied to clipboard.');
+          }).catch(function () {
+            fallbackCopy(text);
+          });
+        } else {
+          fallbackCopy(text);
+        }
+      }
+
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+        alert('Summary copied to clipboard.');
+      }
+
+      function csvEscape(value) {
+        var str = String(value == null ? '' : value);
+        if (/[",\n]/.test(str)) return '"' + str.replace(/"/g, '""') + '"';
+        return str;
+      }
+
+      function hydrateInputs() {
+        els.warnMinutes.value = state.warnMinutes;
+        els.dangerMinutes.value = state.dangerMinutes;
+        els.quarterLength.value = state.quarterLengthMinutes;
+      }
+
+      function syncTimer() {
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+        if (state.matchRunning) {
+          timerId = setInterval(function () {
+            state.matchSeconds += 1;
+            for (var i = 0; i < state.players.length; i++) {
+              if (state.players[i].onGround) {
+                state.players[i].totalSeconds += 1;
+                state.players[i].currentStintSeconds += 1;
+              }
+            }
+            saveState();
+            render();
+          }, 1000);
+        }
+      }
+
+      function findPlayer(id) {
+        for (var i = 0; i < state.players.length; i++) {
+          if (state.players[i].id === id) return state.players[i];
+        }
+        return null;
+      }
+
+      function totals() {
+        var t = { onGround: 0, clearances: 0, inside50s: 0, rebound50s: 0 };
+        for (var i = 0; i < state.players.length; i++) {
+          var p = state.players[i];
+          if (p.onGround) t.onGround += 1;
+          t.clearances += parseInt(p.clearances, 10) || 0;
+          t.inside50s += parseInt(p.inside50s, 10) || 0;
+          t.rebound50s += parseInt(p.rebound50s, 10) || 0;
+        }
+        return t;
+      }
+
+      function render() {
+        els.matchClock.textContent = formatTime(state.matchSeconds);
+        els.quarterPill.textContent = 'Q' + state.quarter;
+        els.startPauseBtn.textContent = state.matchRunning ? '⏸ Pause Match' : '▶ Start Match';
+        els.startPauseBtn.className = 'btn ' + (state.matchRunning ? 'orange' : 'green');
+
+        var t = totals();
+        els.playersCount.textContent = String(state.players.length);
+        els.onGroundCount.textContent = String(t.onGround);
+        els.teamClearances.textContent = String(t.clearances);
+        els.teamZones.textContent = String(t.inside50s) + ' / ' + String(t.rebound50s);
+
+        renderPlayers();
+      }
+
+      function renderPlayers() {
+        if (!state.players.length) {
+          els.playersList.innerHTML = '<div class="empty">No players added yet. Tap <strong>+ Add Player</strong> or <strong>+ Bulk Add</strong> to load your squad.</div>';
+          return;
+        }
+
+        var warnSeconds = state.warnMinutes * 60;
+        var dangerSeconds = state.dangerMinutes * 60;
+        var sorted = state.players.slice().sort(function (a, b) {
+          if (a.onGround !== b.onGround) return (b.onGround ? 1 : 0) - (a.onGround ? 1 : 0);
+          return b.totalSeconds - a.totalSeconds;
+        });
+
+        var html = '';
+        for (var i = 0; i < sorted.length; i++) {
+          var p = sorted[i];
+          var status = '';
+          if (p.onGround && p.currentStintSeconds >= dangerSeconds) status = 'danger';
+          else if (p.onGround && p.currentStintSeconds >= warnSeconds) status = 'warning';
+          else if (p.onGround) status = 'on-ground';
+
+          var progress = p.onGround ? Math.min(100, Math.round((p.currentStintSeconds / dangerSeconds) * 100)) : 0;
+
+          html += '' +
+            '<article class="card ' + status + '">' +
+              '<div class="card-main">' +
+                '<button class="toggle ' + (p.onGround ? 'active' : '') + '" data-action="toggle" data-id="' + p.id + '">' + (p.onGround ? 'ON' : 'OFF') + '</button>' +
+                '<div>' +
+                  '<div class="name">' + escapeHtml(p.name) + '</div>' +
+                  '<div class="meta">' +
+                    '<span>Total <strong>' + formatTime(p.totalSeconds) + '</strong></span>' +
+                    '<span class="stint">Stint <strong>' + formatTime(p.currentStintSeconds) + '</strong></span>' +
+                    '<span>Qtr target <strong>' + state.quarterLengthMinutes + 'm</strong></span>' +
+                  '</div>' +
+                  '<div class="bar"><div class="bar-fill" style="width:' + progress + '%"></div></div>' +
+                '</div>' +
+                '<div><button class="btn ghost small" data-action="remove" data-id="' + p.id + '">Remove</button></div>' +
+              '</div>' +
+              '<div class="stats">' +
+                statTile(p.id, 'CLR', p.clearances, 'clearances') +
+                statTile(p.id, 'I50', p.inside50s, 'inside50s') +
+                statTile(p.id, 'R50', p.rebound50s, 'rebound50s') +
+              '</div>' +
+            '</article>';
+        }
+        els.playersList.innerHTML = html;
+      }
+
+      function statTile(id, label, value, statKey) {
+        return '' +
+          '<div class="stat" data-action="stat-add" data-id="' + id + '" data-stat="' + statKey + '">' +
+            '<div class="stat-label">' + label + '</div>' +
+            '<div class="stat-value">' + (parseInt(value, 10) || 0) + '</div>' +
+            '<div class="stat-sub" data-action="stat-subtract" data-id="' + id + '" data-stat="' + statKey + '">undo</div>' +
+          '</div>';
+      }
+
+      function buildSummary() {
+        var sorted = state.players.slice().sort(function (a, b) { return b.totalSeconds - a.totalSeconds; });
+        var html = '<table><thead><tr><th>Player</th><th>Total Time</th><th>Clearances</th><th>Inside 50s</th><th>Rebound 50s</th></tr></thead><tbody>';
+        if (!sorted.length) {
+          html += '<tr><td colspan="5">No players added yet.</td></tr>';
+        } else {
+          for (var i = 0; i < sorted.length; i++) {
+            var p = sorted[i];
+            html += '<tr>' +
+              '<td>' + escapeHtml(p.name) + '</td>' +
+              '<td class="num">' + formatTime(p.totalSeconds) + '</td>' +
+              '<td class="num">' + (parseInt(p.clearances, 10) || 0) + '</td>' +
+              '<td class="num">' + (parseInt(p.inside50s, 10) || 0) + '</td>' +
+              '<td class="num">' + (parseInt(p.rebound50s, 10) || 0) + '</td>' +
+            '</tr>';
+          }
+        }
+        html += '</tbody></table>';
+        els.summaryWrap.innerHTML = html;
+      }
+
+      function buildSummaryText() {
+        var lines = [];
+        lines.push('OBGFC AFLW MATCH SUMMARY | Q' + state.quarter + ' | Match Time ' + formatTime(state.matchSeconds));
+        lines.push('Player | Total Time | CLR | I50 | R50');
+        lines.push('--------------------------------------------------');
+        var sorted = state.players.slice().sort(function (a, b) { return b.totalSeconds - a.totalSeconds; });
+        for (var i = 0; i < sorted.length; i++) {
+          var p = sorted[i];
+          lines.push(p.name + ' | ' + formatTime(p.totalSeconds) + ' | ' + p.clearances + ' | ' + p.inside50s + ' | ' + p.rebound50s);
+        }
+        return lines.join('\n');
+      }
+
+      hydrateInputs();
+      bindEvents();
+      syncTimer();
+      render();
+    })();
+  </script>
+</body>
+</html>
