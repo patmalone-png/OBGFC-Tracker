@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>OBGFC AFLW Match Tracker v10 (Fixed)</title>
+  <style>
+    :root {
+      --bg: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: rgba(15,23,42,0.10);
+      --surface: #ffffff;
+      --soft: #f8fafc;
+      --shadow: 0 10px 24px rgba(15,23,42,0.08);
+      --blue: #2563eb;
+      --blue-soft: rgba(37,99,235,0.10);
+      --green: #16a34a;
+      --green-soft: rgba(22,163,74,0.10);
+      --orange: #f59e0b;
+      --orange-soft: rgba(245,158,11,0.12);
+      --red: #ef4444;
+      --red-soft: rgba(239,68,68,0.12);
+      --purple: #7c3aed;
+      --purple-soft: rgba(124,58,237,0.12);
+      --def: #3b82f6;
+      --mid: #f59e0b;
+      --fwd: #8b5cf6;
+      --bench: #94a3b8;
+      --card1: #112542;
+      --card2: #173156;
+      --radius: 16px;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; min-height: 100vh; -webkit-tap-highlight-color: transparent; }
+    body.coach-mode { font-size: 18px; }
+
+    .app { max-width: 1720px; margin: 0 auto; padding-bottom: 96px; }
+    .topbar { position: sticky; top: 0; z-index: 30; background: rgba(255,255,255,0.94); backdrop-filter: blur(10px); border-bottom: 1px solid var(--border); padding: env(safe-area-inset-top) 14px 12px; }
+    .topbar-inner { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 22px; font-weight: 900; }
+    .sub { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .clock-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .pill { min-width: 62px; text-align: center; padding: 8px 12px; border-radius: 999px; border: 1px solid rgba(37,99,235,0.25); color: var(--blue); background: rgba(37,99,235,0.08); font-size: 12px; font-weight: 800; letter-spacing: 0.06em; }
+    .clock { min-width: 170px; border-radius: 16px; background: #0f172a; color: #fff; box-shadow: var(--shadow); text-align: center; padding: 10px 14px; }
+    .clock .label { font-size: 11px; color: rgba(255,255,255,0.72); text-transform: uppercase; letter-spacing: 0.07em; }
+    .clock .time { margin-top: 4px; font-size: 34px; line-height: 1; font-weight: 900; color: #93c5fd; font-variant-numeric: tabular-nums; }
+
+    .layout { display: grid; grid-template-columns: 440px minmax(0,1fr); gap: 16px; padding: 16px; align-items: start; }
+    .sidebar, .main { display: grid; gap: 16px; }
+    .panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+    .panel-head { padding: 14px 14px 0; }
+    .panel-head h2 { margin: 0; font-size: 16px; font-weight: 900; }
+    .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+
+    .grid2, .grid3, .grid4 { display: grid; gap: 10px; padding: 14px; }
+    .grid2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .grid3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .grid4 { grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .score-grid { display: grid; grid-template-columns: 1fr 120px 1fr; gap: 10px; align-items: end; padding: 14px; }
+    .teamsheet-grid { display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: end; padding: 14px; }
+
+    button, input, textarea, select { font: inherit; }
+    .btn { min-height: 46px; padding: 11px 14px; border: 1px solid var(--border); border-radius: 12px; color: var(--text); background: var(--soft); cursor: pointer; font-weight: 800; }
+    .btn:active { transform: scale(0.99); }
+    .btn.green { background: var(--green-soft); border-color: rgba(22,163,74,0.35); color: #166534; }
+    .btn.orange { background: var(--orange-soft); border-color: rgba(245,158,11,0.35); color: #9a6700; }
+    .btn.red { background: var(--red-soft); border-color: rgba(239,68,68,0.35); color: #991b1b; }
+    .btn.blue { background: var(--blue-soft); border-color: rgba(37,99,235,0.35); color: #1d4ed8; }
+    .btn.purple { background: var(--purple-soft); border-color: rgba(124,58,237,0.35); color: #6d28d9; }
+    .btn.ghost { background: transparent; }
+    .btn.small { min-height: 36px; padding: 7px 10px; font-size: 12px; }
+
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 11px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+    .field input, .field textarea, .field select { width: 100%; background: #fff; color: var(--text); border: 1px solid var(--border); border-radius: 12px; padding: 12px; outline: none; }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .inline2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .help-card { padding: 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--soft); font-size: 13px; }
+
+    .mini, .opp-card { background: var(--soft); border: 1px solid var(--border); border-radius: 14px; padding: 12px; text-align: center; }
+    .mini .label, .opp-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.06em; }
+    .mini .value, .opp-card .value { margin-top: 6px; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .opp-controls { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; margin-top: 8px; }
+
+    .score-card { background: var(--soft); border: 1px solid var(--border); border-radius: 16px; padding: 14px; }
+    .score-value { margin-top: 6px; font-size: 40px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+    .score-breakdown { margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .score-center { text-align: center; padding-bottom: 12px; }
+    .margin-chip { display: inline-block; margin-top: 8px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900; }
+    .margin-win { color: #166534; background: rgba(22,163,74,0.14); border: 1px solid rgba(22,163,74,0.35); }
+    .margin-lose { color: #991b1b; background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.35); }
+    .margin-draw { color: #1d4ed8; background: rgba(37,99,235,0.14); border: 1px solid rgba(37,99,235,0.35); }
+
+    .board-wrap { padding: 14px; }
+    .board-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip { border: 1px solid var(--border); background: var(--soft); color: var(--muted); border-radius: 999px; padding: 8px 10px; cursor: pointer; font-size: 12px; font-weight: 800; }
+    .chip.active { background: rgba(37,99,235,0.10); color: var(--blue); border-color: rgba(37,99,235,0.28); }
+    .alert { margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 800; border: 1px solid rgba(245,158,11,0.30); background: rgba(245,158,11,0.10); color: #9a6700; }
+
+    .line-board { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; align-items: start; }
+    .lane { border: 1px solid var(--border); border-radius: 16px; background: #fff; overflow: hidden; min-height: 280px; box-shadow: var(--shadow); }
+    .lane-head { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+    .lane-head h3 { margin: 0; font-size: 14px; font-weight: 900; }
+    .lane-head .note { font-size: 12px; color: var(--muted); }
+    .lane-head.def h3 { color: var(--def); }
+    .lane-head.mid h3 { color: var(--mid); }
+    .lane-head.fwd h3 { color: var(--fwd); }
+    .lane-head.bench h3 { color: #64748b; }
+    .lane-body { padding: 12px; display: grid; gap: 10px; min-height: 180px; }
+    .lane-body.drag-over { outline: 2px dashed rgba(37,99,235,0.45); outline-offset: -6px; background: rgba(37,99,235,0.05); }
+
+    .quarter-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; padding: 0 14px 14px; }
+    .quarter-box { border: 1px solid var(--border); border-radius: 12px; padding: 10px; background: var(--soft); text-align: center; }
+    .quarter-box .q { font-size: 11px; color: var(--muted); font-weight: 800; text-transform: uppercase; }
+    .quarter-box .t { margin-top: 6px; font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+    .event-log { padding: 0 14px 14px; }
+    .event-list { border: 1px solid var(--border); border-radius: 12px; background: #fff; max-height: 260px; overflow: auto; }
+    .event-item { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 12px; }
+    .event-item:last-child { border-bottom: none; }
+    .event-time { color: var(--muted); font-weight: 900; margin-right: 8px; }
+
+    .empty { padding: 28px 18px; text-align: center; color: var(--muted); border: 1px dashed rgba(15,23,42,0.12); border-radius: 12px; background: var(--soft); }
+    .cards-grid { display: grid; gap: 10px; }
+    .card { border: 1px solid rgba(15,23,42,0.10); border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, var(--card1), var(--card2)); color: #fff; box-shadow: var(--shadow); }
+    .card.draggable { cursor: grab; }
+    .card.dragging { opacity: 0.45; }
+    .card.def { border-color: rgba(77,163,255,0.35); }
+    .card.mid { border-color: rgba(245,165,36,0.35); }
+    .card.fwd { border-color: rgba(139,92,246,0.35); }
+    .card.bench { border-color: rgba(148,163,184,0.35); }
+    .card.warning { border-color: rgba(245,165,36,0.55); }
+    .card.danger { border-color: rgba(239,68,68,0.60); box-shadow: 0 0 18px rgba(239,68,68,0.10); }
+    .card-main { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px; }
+    .name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .name-wrap { display: flex; gap: 8px; align-items: center; min-width: 0; }
+    .number-badge { min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.08); color: #fff; font-weight: 900; font-size: 12px; flex-shrink: 0; }
+    .name { font-size: 18px; font-weight: 900; line-height: 1.15; word-break: break-word; }
+    .card.warning .name { color: #fde68a; }
+    .card.danger .name { color: #fecaca; }
+    .tag { padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; border: 1px solid rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.07); }
+    .threshold-badge { margin-top: 8px; display: inline-block; padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; background: rgba(147,197,253,0.14); color: #dbeafe; border: 1px solid rgba(147,197,253,0.28); }
+    .heat-badge { margin-top: 8px; margin-left: 6px; display: inline-block; padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; }
+    .heat-ok { background: rgba(22,163,74,0.16); color: #bbf7d0; border: 1px solid rgba(22,163,74,0.35); }
+    .heat-warn { background: rgba(245,158,11,0.16); color: #fde68a; border: 1px solid rgba(245,158,11,0.35); }
+    .heat-hot { background: rgba(239,68,68,0.16); color: #fecaca; border: 1px solid rgba(239,68,68,0.35); }
+    .meta { margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: rgba(255,255,255,0.72); }
+    .meta strong { color: #fff; font-variant-numeric: tabular-nums; }
+    .sub-meta { margin-top: 6px; color: rgba(255,255,255,0.60); font-size: 11px; }
+    .bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); margin-top: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #86efac); }
+    .card.warning .bar-fill { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+    .card.danger .bar-fill { background: linear-gradient(90deg, #ef4444, #fecaca); }
+    .card-actions { display: flex; flex-direction: column; gap: 8px; }
+    .move-row { margin-top: 10px; display: grid; gap: 6px; grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .move-btn { min-height: 34px; padding: 6px 6px; font-size: 11px; font-weight: 900; border-radius: 10px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.08); color: #fff; }
+    .stats { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; padding: 0 12px 12px; }
+    .stat { border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; background: rgba(255,255,255,0.06); padding: 10px 6px; min-height: 70px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; }
+    .stat-label { font-size: 10px; color: rgba(255,255,255,0.70); font-weight: 900; letter-spacing: 0.06em; }
+    .stat-value { font-size: 20px; font-weight: 900; line-height: 1; }
+    .stat-sub { font-size: 10px; color: #fecaca; font-weight: 800; }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 100; }
+    .modal.open { display: flex; }
+    .modal-card { width: min(100%, 1180px); background: #fff; border: 1px solid var(--border); border-radius: 18px; box-shadow: var(--shadow); padding: 16px; color: var(--text); }
+    .modal-card h3 { margin: 0 0 6px; font-size: 20px; font-weight: 900; }
+    .modal-card p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--border); border-radius: 12px; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1560px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--border); text-align: left; font-size: 13px; }
+    th { font-size: 11px; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; background: var(--soft); }
+    td.num { text-align: center; font-variant-numeric: tabular-nums; }
+
+    .footer { padding: 2px 14px 24px; text-align: center; color: var(--muted); font-size: 12px; }
+    .boot-ok { color: #166534; font-weight: 800; }
+    .boot-bad { color: #991b1b; font-weight: 800; }
+
+    @media (max-width: 1500px) { .line-board { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 1260px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 980px) { .stats { grid-template-columns: repeat(4, minmax(0,1fr)); } .grid3 { grid-template-columns: repeat(2, minmax(0,1fr)); } .grid4, .grid2 { grid-template-columns: 1fr; } }
+    @media (max-width: 720px) { .line-board { grid-template-columns: 1fr; } .score-grid { grid-template-columns: 1fr; } .score-center { order: -1; } .quarter-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .stats { grid-template-columns: repeat(3, minmax(0,1fr)); } .move-row { grid-template-columns: repeat(2, minmax(0,1fr)); } .teamsheet-grid { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <h1>🏉 OBGFC AFLW Match Tracker v10 (Fixed)</h1>
+          <div class="sub">Fixed add player / bulk add • quarter clock resets each quarter • white background</div>
+        </div>
+        <div class="clock-wrap">
+          <div id="quarterPill" class="pill">Q1</div>
+          <div class="clock"><div class="label">Quarter Clock</div><div id="quarterClock" class="time">00:00</div></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-head"><h2>Scoreboard</h2><p>Track the team score and live margin.</p></div>
+          <div class="score-grid">
+            <div class="score-card">
+              <div class="field"><label for="teamName">Our Team</label><input id="teamName" type="text" maxlength="30" value="OBGFC" /></div>
+              <div id="teamScoreValue" class="score-value">0</div>
+              <div id="teamBreakdown" class="score-breakdown">0.0 (0)</div>
+              <div class="grid2" style="padding:10px 0 0;">
+                <button id="teamGoalBtn" class="btn green">+ Goal</button>
+                <button id="teamBehindBtn" class="btn blue">+ Behind</button>
+              </div>
+            </div>
+            <div class="score-center">
+              <div style="font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:0.06em;">Margin</div>
+              <div id="marginValue" class="score-value" style="font-size:30px;">0</div>
+              <div id="marginChip" class="margin-chip margin-draw">Level</div>
+            </div>
+            <div class="score-card">
+              <div class="field"><label for="oppName">Opponent</label><input id="oppName" type="text" maxlength="30" value="Opponent" /></div>
+              <div id="oppScoreValue" class="score-value">0</div>
+              <div id="oppBreakdown" class="score-breakdown">0.0 (0)</div>
+              <div class="grid2" style="padding:10px 0 0;">
+                <button id="oppGoalBtn" class="btn red">+ Goal</button>
+                <button id="oppBehindBtn" class="btn orange">+ Behind</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Opposition Team Stats</h2><p>Capture opposition totals only, not individuals.</p></div>
+          <div class="grid2" style="padding:14px;">
+            <div class="opp-card"><div class="label">Opp CLR</div><div id="oppClrValue" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="clearances" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="clearances" data-delta="-1">-1</button></div></div>
+            <div class="opp-card"><div class="label">Opp I50</div><div id="oppI50Value" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="inside50s" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="inside50s" data-delta="-1">-1</button></div></div>
+            <div class="opp-card"><div class="label">Opp R50</div><div id="oppR50Value" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="rebound50s" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="rebound50s" data-delta="-1">-1</button></div></div>
+            <div class="opp-card"><div class="label">Opp TKL</div><div id="oppTklValue" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="tackles" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="tackles" data-delta="-1">-1</button></div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Game Controls</h2><p>All major coach tools in one place.</p></div>
+          <div class="grid2">
+            <button id="startPauseBtn" class="btn green">▶ Start Match</button>
+            <button id="nextQuarterBtn" class="btn blue">⏭ Next Quarter</button>
+            <button id="addPlayerBtn" class="btn blue">+ Add Player</button>
+            <button id="bulkAddBtn" class="btn blue">+ Bulk Add</button>
+            <button id="summaryBtn" class="btn purple">📊 Summary</button>
+            <button id="resetBtn" class="btn red">↺ Reset Match</button>
+            <button id="coachModeBtn" class="btn purple">🎯 Coach Mode</button>
+            <button id="clearSavedBtn" class="btn ghost">Clear local data</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Global Settings</h2><p>Match-wide controls and fallback thresholds.</p></div>
+          <div class="grid2">
+            <div class="field"><label for="quarterLength">Quarter length</label><input id="quarterLength" type="number" min="5" max="30" step="1" value="20" /></div>
+            <div class="field"><label for="onGroundTarget">On ground target</label><input id="onGroundTarget" type="number" min="10" max="18" step="1" value="18" /></div>
+            <div class="field"><label for="defaultWarn">Default warn</label><input id="defaultWarn" type="number" min="1" max="40" step="1" value="8" /></div>
+            <div class="field"><label for="defaultDanger">Default danger</label><input id="defaultDanger" type="number" min="1" max="40" step="1" value="12" /></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Line Quotas & Presets</h2><p>Set target numbers by line and apply quick presets.</p></div>
+          <div class="grid2">
+            <div class="field"><label for="defQuota">DEF quota</label><input id="defQuota" type="number" min="0" max="18" step="1" value="6" /></div>
+            <div class="field"><label for="midQuota">MID quota</label><input id="midQuota" type="number" min="0" max="18" step="1" value="6" /></div>
+            <div class="field"><label for="fwdQuota">FWD quota</label><input id="fwdQuota" type="number" min="0" max="18" step="1" value="6" /></div>
+            <div class="help-card"><strong>Preset formations</strong><div class="grid2" style="padding:8px 0 0;"><button id="preset666" class="btn small blue">6 | 6 | 6</button><button id="preset756" class="btn small blue">7 | 5 | 6</button><button id="preset657" class="btn small blue">6 | 5 | 7</button></div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Role Time Windows</h2><p>Set custom warning / danger times by line.</p></div>
+          <div class="grid2">
+            <div class="help-card"><strong>MID</strong><div class="inline2" style="margin-top:8px;"><input id="midWarn" type="number" min="1" max="40" step="1" value="6" /><input id="midDanger" type="number" min="1" max="40" step="1" value="9" /></div></div>
+            <div class="help-card"><strong>FWD</strong><div class="inline2" style="margin-top:8px;"><input id="fwdWarn" type="number" min="1" max="40" step="1" value="8" /><input id="fwdDanger" type="number" min="1" max="40" step="1" value="11" /></div></div>
+            <div class="help-card"><strong>DEF</strong><div class="inline2" style="margin-top:8px;"><input id="defWarn" type="number" min="1" max="40" step="1" value="9" /><input id="defDanger" type="number" min="1" max="40" step="1" value="13" /></div></div>
+            <div class="help-card"><strong>Default</strong><div class="inline2" style="margin-top:8px;"><input id="defaultWarn2" type="number" min="1" max="40" step="1" value="8" /><input id="defaultDanger2" type="number" min="1" max="40" step="1" value="12" /></div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Save / Load Team Sheets</h2><p>Store squad lists locally on this device.</p></div>
+          <div class="teamsheet-grid">
+            <div class="field"><label for="sheetName">Team sheet name</label><input id="sheetName" type="text" maxlength="40" placeholder="e.g. Seniors Round 1" /></div>
+            <button id="saveSheetBtn" class="btn blue">Save Sheet</button>
+            <div class="field"><label for="sheetSelect">Saved sheets</label><select id="sheetSelect"></select></div>
+            <div class="grid2" style="padding:0;">
+              <button id="loadSheetBtn" class="btn green">Load</button>
+              <button id="deleteSheetBtn" class="btn red">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Team Snapshot</h2><p>Live team totals, line mix and differentials.</p></div>
+          <div class="grid3">
+            <div class="mini"><div class="label">Players</div><div id="playersCount" class="value">0</div></div>
+            <div class="mini"><div class="label">On Ground</div><div id="onGroundCount" class="value">0</div></div>
+            <div class="mini"><div class="label">Bench</div><div id="benchCount" class="value">0</div></div>
+            <div class="mini"><div class="label">Interchanges</div><div id="interchangesCount" class="value">0</div></div>
+            <div class="mini"><div class="label">Our CLR</div><div id="teamClearances" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp CLR</div><div id="oppClrMini" class="value">0</div></div>
+            <div class="mini"><div class="label">Our I50</div><div id="teamI50s" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp I50</div><div id="oppI50Mini" class="value">0</div></div>
+            <div class="mini"><div class="label">Our R50</div><div id="teamR50s" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp R50</div><div id="oppR50Mini" class="value">0</div></div>
+            <div class="mini"><div class="label">Our TKL</div><div id="teamTackles" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp TKL</div><div id="oppTklMini" class="value">0</div></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <section class="panel">
+          <div class="board-wrap">
+            <div class="board-head">
+              <div>
+                <h2>Line Grouped Board</h2>
+                <p>Drag and drop cards into DEF, MID, FWD or BENCH. On mobile, use the move buttons.</p>
+              </div>
+              <div class="filters">
+                <button class="chip active" data-filter="all">All</button>
+                <button class="chip" data-filter="active">On Ground</button>
+                <button class="chip" data-filter="bench">Bench</button>
+              </div>
+            </div>
+            <div id="rotationAlert"></div>
+            <div class="line-board">
+              <section class="lane"><div class="lane-head def"><h3>DEF</h3><div id="defLaneNote" class="note">0 players</div></div><div id="defLane" class="lane-body" data-drop-zone="DEF"></div></section>
+              <section class="lane"><div class="lane-head mid"><h3>MID</h3><div id="midLaneNote" class="note">0 players</div></div><div id="midLane" class="lane-body" data-drop-zone="MID"></div></section>
+              <section class="lane"><div class="lane-head fwd"><h3>FWD</h3><div id="fwdLaneNote" class="note">0 players</div></div><div id="fwdLane" class="lane-body" data-drop-zone="FWD"></div></section>
+              <section class="lane"><div class="lane-head bench"><h3>BENCH</h3><div id="benchLaneNote" class="note">0 players</div></div><div id="benchLane" class="lane-body" data-drop-zone="BENCH"></div></section>
+            </div>
+          </div>
+        </section>
+        <section class="panel"><div class="panel-head"><h2>Quarter Time Distribution</h2><p>Quarter-by-quarter time on ground totals across the squad.</p></div><div id="quarterGrid" class="quarter-grid"></div></section>
+        <section class="panel"><div class="panel-head"><h2>Recent Events</h2><p>Latest scoreboard, lane moves and stat actions.</p></div><div class="event-log"><div id="eventList" class="event-list"></div></div></section>
+      </main>
+    </div>
+
+    <div class="footer">
+      Everything saves locally in your browser on this device. The visible clock is the <strong>quarter clock</strong> and resets when you press <strong>Next Quarter</strong>.<br>
+      <span id="bootStatus" class="boot-ok">App loaded successfully.</span>
+    </div>
+  </div>
+
+  <div id="playerModal" class="modal" aria-hidden="true">
+    <div class="modal-card" style="width:min(100%, 640px);">
+      <h3>Add Player</h3>
+      <p>Add one player to the tracker.</p>
+      <form id="playerForm">
+        <div class="inline2">
+          <div class="field"><label for="playerNumberInput">Playing number</label><input id="playerNumberInput" type="number" min="0" max="99" step="1" placeholder="e.g. 12" /></div>
+          <div class="field"><label for="playerLineInput">Starting line</label><input id="playerLineInput" type="text" maxlength="30" placeholder="DEF / MID / FWD / BENCH" autocomplete="off" /></div>
+        </div>
+        <div class="field"><label for="playerNameInput">Player name</label><input id="playerNameInput" type="text" maxlength="60" placeholder="e.g. M. Malone" autocomplete="off" required /></div>
+        <div class="modal-actions"><button type="button" class="btn ghost" data-close="playerModal">Cancel</button><button type="submit" class="btn blue">Add Player</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="bulkModal" class="modal" aria-hidden="true">
+    <div class="modal-card" style="width:min(100%, 720px);">
+      <h3>Bulk Add Players</h3>
+      <p>Paste one player per line. Recommended format: <strong>12 - Jess Howard - MID</strong></p>
+      <form id="bulkForm">
+        <div class="field"><label for="bulkNamesInput">Squad list</label><textarea id="bulkNamesInput" placeholder="12 - Jess Howard - MID&#10;3 - Grace Kelly - FWD&#10;24 - Tilly Jones - DEF"></textarea></div>
+        <div class="modal-actions"><button type="button" class="btn ghost" data-close="bulkModal">Cancel</button><button type="submit" class="btn blue">Add Squad</button></div>
+      </form>
+    </div>
+  </div>
+
+  <div id="summaryModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Match Summary</h3>
+      <p>Copy to clipboard or export CSV after the game.</p>
+      <div id="summaryWrap" class="table-wrap"></div>
+      <div class="modal-actions"><button type="button" class="btn ghost" data-close="summaryModal">Close</button><button type="button" id="copySummaryBtn" class="btn purple">📋 Copy Summary</button><button type="button" id="downloadCsvBtn" class="btn blue">⬇ Download CSV</button></div>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      'use strict';
+      var STORAGE_KEY = 'obgfc-aflw-tracker-v10-fixed';
+      var DEFAULT_STATE = {
+        matchRunning:false,totalMatchSeconds:0,quarterClockSeconds:0,quarter:1,quarterLengthMinutes:20,onGroundTarget:18,
+        lineQuotas:{DEF:6,MID:6,FWD:6},filterMode:'all',coachMode:false,nextId:1,
+        teamName:'OBGFC',oppName:'Opponent',teamGoals:0,teamBehinds:0,oppGoals:0,oppBehinds:0,
+        oppositionStats:{clearances:0,inside50s:0,rebound50s:0,tackles:0},
+        roleWindows:{default:{warn:8,danger:12},mid:{warn:6,danger:9},fwd:{warn:8,danger:11},def:{warn:9,danger:13}},
+        teamSheets:{},players:[],eventLog:[]
+      };
+      function clone(o){return JSON.parse(JSON.stringify(o));}
+      function $(id){return document.getElementById(id);}    
+      function pad2(n){return (n<10?'0':'')+n;}
+      function score(g,b){return g*6+b;}
+      function formatTime(s){var m=Math.floor(s/60),sec=s%60; return pad2(m)+':'+pad2(sec);}      
+      function quarterStamp(){return 'Q'+state.quarter+' '+formatTime(state.quarterClockSeconds);}      
+      function escapeHtml(v){return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#039;');}
+      function numberText(v){var x=String(v==null?'':v).trim(); return x===''?'—':x;}
+      function normaliseLane(v){v=String(v||'').toUpperCase().trim(); if(v.indexOf('DEF')>=0||v.indexOf('BACK')>=0) return 'DEF'; if(v.indexOf('MID')>=0||v.indexOf('WING')>=0) return 'MID'; if(v.indexOf('FWD')>=0||v.indexOf('FORW')>=0) return 'FWD'; return 'BENCH';}
+      function setBootError(msg){var el=$('bootStatus'); if(el){el.className='boot-bad'; el.textContent=msg;}}
+      window.onerror=function(msg){ setBootError('JavaScript error: '+msg); };
+
+      function loadState(){ try{ var raw=localStorage.getItem(STORAGE_KEY); if(!raw) return clone(DEFAULT_STATE); var parsed=JSON.parse(raw), base=clone(DEFAULT_STATE); Object.keys(parsed).forEach(function(k){base[k]=parsed[k];}); if(!base.roleWindows) base.roleWindows=clone(DEFAULT_STATE.roleWindows); if(!base.lineQuotas) base.lineQuotas=clone(DEFAULT_STATE.lineQuotas); if(!base.oppositionStats) base.oppositionStats=clone(DEFAULT_STATE.oppositionStats); if(!base.teamSheets) base.teamSheets={}; if(!Array.isArray(base.players)) base.players=[]; if(!Array.isArray(base.eventLog)) base.eventLog=[]; return base; }catch(e){ return clone(DEFAULT_STATE);} }
+      function saveState(){ try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){} }
+      function clamp(v,min,max,fb){ var n=parseInt(v,10); if(isNaN(n)) return fb; return Math.max(min, Math.min(max, n)); }
+      var state = loadState();
+      var timerId = null;
+      var draggedId = null;
+
+      function getRoleWindow(p){ if(p.line==='DEF') return state.roleWindows.def; if(p.line==='MID') return state.roleWindows.mid; if(p.line==='FWD') return state.roleWindows.fwd; return state.roleWindows.default; }
+      function heatClass(p){ var w=getRoleWindow(p); if(p.onGround && p.currentStintSeconds >= w.danger*60) return 'hot'; if(p.onGround && p.currentStintSeconds >= w.warn*60) return 'warn'; return 'ok'; }
+      function addEvent(text){ state.eventLog.unshift({time:quarterStamp(), text:text}); if(state.eventLog.length>80) state.eventLog=state.eventLog.slice(0,80); }
+      function createPlayer(number,name,line){ var lane=normaliseLane(line); return { id: state.nextId++, number:numberText(number), name:name, line:lane, onGround:lane!=='BENCH', totalSeconds:0, currentStintSeconds:0, currentBenchSeconds:0, interchanges:0, lastMove:quarterStamp()+' to '+lane, clearances:0, inside50s:0, rebound50s:0, tackles:0, marks:0, disposals:0, goals:0, quarterSeconds:[0,0,0,0]}; }
+      function totals(){ var t={onGround:0,bench:0,interchanges:0,clearances:0,inside50s:0,rebound50s:0,tackles:0,marks:0,disposals:0,goals:0}; state.players.forEach(function(p){ if(p.onGround) t.onGround++; else t.bench++; t.interchanges += (+p.interchanges||0); t.clearances += (+p.clearances||0); t.inside50s += (+p.inside50s||0); t.rebound50s += (+p.rebound50s||0); t.tackles += (+p.tackles||0); t.marks += (+p.marks||0); t.disposals += (+p.disposals||0); t.goals += (+p.goals||0); }); return t; }
+      function lineCounts(){ return { DEF: state.players.filter(function(p){return p.line==='DEF';}).length, MID: state.players.filter(function(p){return p.line==='MID';}).length, FWD: state.players.filter(function(p){return p.line==='FWD';}).length, BENCH: state.players.filter(function(p){return p.line==='BENCH';}).length}; }
+      function findPlayer(id){ for(var i=0;i<state.players.length;i++) if(state.players[i].id===id) return state.players[i]; return null; }
+      function movePlayerToLane(id,lane){ var p=findPlayer(id); if(!p) return; lane=normaliseLane(lane); var willBeOnGround = lane!=='BENCH'; if(p.line===lane && p.onGround===willBeOnGround) return; p.line=lane; p.onGround=willBeOnGround; p.currentStintSeconds=0; p.currentBenchSeconds=0; p.interchanges+=1; p.lastMove=quarterStamp()+' to '+lane; addEvent('#'+p.number+' '+p.name+' moved to '+lane); saveState(); render(); }
+      function updatePlayerStat(id, stat, delta){ var p=findPlayer(id); if(!p) return; var allowed=['clearances','inside50s','rebound50s','tackles','marks','disposals','goals']; if(allowed.indexOf(stat)===-1) return; p[stat]=Math.max(0,(+p[stat]||0)+delta); if(delta>0) addEvent('#'+p.number+' '+p.name+' +'+stat.toUpperCase()); saveState(); render(); }
+      function updateOppStat(stat, delta){ if(!state.oppositionStats.hasOwnProperty(stat)) return; state.oppositionStats[stat]=Math.max(0,(+state.oppositionStats[stat]||0)+delta); if(delta>0) addEvent((state.oppName||'Opponent')+' +'+stat.toUpperCase()); saveState(); render(); }
+      function removePlayer(id){ var p=findPlayer(id); if(!p) return; if(!window.confirm('Remove '+p.name+'?')) return; state.players = state.players.filter(function(x){return x.id!==id;}); addEvent('#'+p.number+' '+p.name+' removed'); saveState(); render(); }
+
+      function syncTimer(){ if(timerId){ clearInterval(timerId); timerId=null; } if(state.matchRunning){ timerId=setInterval(function(){ state.totalMatchSeconds += 1; state.quarterClockSeconds += 1; state.players.forEach(function(p){ if(p.onGround){ p.totalSeconds +=1; p.currentStintSeconds +=1; if(state.quarter>=1 && state.quarter<=4) p.quarterSeconds[state.quarter-1]+=1; } else { p.currentBenchSeconds +=1; } }); saveState(); render(); }, 1000); } }
+
+      function refreshSheetSelect(){ var el=$('sheetSelect'); if(!el) return; var keys=Object.keys(state.teamSheets||{}).sort(); el.innerHTML = keys.length ? keys.map(function(k){return '<option value="'+escapeHtml(k)+'">'+escapeHtml(k)+'</option>';}).join('') : '<option value="">No saved sheets</option>'; }
+      function setFilterChips(){ document.querySelectorAll('[data-filter]').forEach(function(chip){ chip.className = chip.getAttribute('data-filter')===state.filterMode ? 'chip active' : 'chip'; }); }
+      function hydrateInputs(){ document.body.classList.toggle('coach-mode', !!state.coachMode); $('coachModeBtn').textContent = state.coachMode ? '🎯 Coach Mode On' : '🎯 Coach Mode'; $('teamName').value=state.teamName; $('oppName').value=state.oppName; $('quarterLength').value=state.quarterLengthMinutes; $('onGroundTarget').value=state.onGroundTarget; $('defQuota').value=state.lineQuotas.DEF; $('midQuota').value=state.lineQuotas.MID; $('fwdQuota').value=state.lineQuotas.FWD; $('defaultWarn').value=state.roleWindows.default.warn; $('defaultDanger').value=state.roleWindows.default.danger; $('defaultWarn2').value=state.roleWindows.default.warn; $('defaultDanger2').value=state.roleWindows.default.danger; $('midWarn').value=state.roleWindows.mid.warn; $('midDanger').value=state.roleWindows.mid.danger; $('fwdWarn').value=state.roleWindows.fwd.warn; $('fwdDanger').value=state.roleWindows.fwd.danger; $('defWarn').value=state.roleWindows.def.warn; $('defDanger').value=state.roleWindows.def.danger; refreshSheetSelect(); setFilterChips(); }
+
+      function renderScoreboard(){ var our=score(state.teamGoals,state.teamBehinds), opp=score(state.oppGoals,state.oppBehinds), margin=our-opp; $('teamScoreValue').textContent=String(our); $('oppScoreValue').textContent=String(opp); $('teamBreakdown').textContent = state.teamGoals+'.'+state.teamBehinds+' ('+our+')'; $('oppBreakdown').textContent=state.oppGoals+'.'+state.oppBehinds+' ('+opp+')'; $('marginValue').textContent = (margin>0?'+':'')+margin; var mc=$('marginChip'); if(margin>0){ mc.className='margin-chip margin-win'; mc.textContent='Leading'; } else if(margin<0){ mc.className='margin-chip margin-lose'; mc.textContent='Trailing'; } else { mc.className='margin-chip margin-draw'; mc.textContent='Level'; } }
+      function renderQuarterGrid(){ var q=[0,0,0,0]; state.players.forEach(function(p){ for(var i=0;i<4;i++) q[i]+= (+p.quarterSeconds[i]||0); }); $('quarterGrid').innerHTML = q.map(function(v,i){ return '<div class="quarter-box"><div class="q">Q'+(i+1)+'</div><div class="t">'+formatTime(v)+'</div></div>'; }).join(''); }
+      function renderEventLog(){ $('eventList').innerHTML = state.eventLog.length ? state.eventLog.map(function(e){ return '<div class="event-item"><span class="event-time">'+escapeHtml(e.time)+'</span>'+escapeHtml(e.text)+'</div>'; }).join('') : '<div class="event-item">No events yet.</div>'; }
+      function renderCard(p){ var w=getRoleWindow(p); var cls=p.line.toLowerCase(); if(p.onGround && p.currentStintSeconds>=w.danger*60) cls+=' danger'; else if(p.onGround && p.currentStintSeconds>=w.warn*60) cls+=' warning'; var progress = p.onGround ? Math.min(100, Math.round((p.currentStintSeconds/Math.max(1,w.danger*60))*100)) : 0; var heat = heatClass(p)==='hot' ? '<span class="heat-badge heat-hot">HOT</span>' : (heatClass(p)==='warn' ? '<span class="heat-badge heat-warn">WARM</span>' : '<span class="heat-badge heat-ok">FRESH</span>'); return '<article class="card draggable '+cls+'" draggable="true" data-player-id="'+p.id+'">' + '<div class="card-main"><div><div class="name-row"><div class="name-wrap"><span class="number-badge">'+escapeHtml(p.number)+'</span><div class="name">'+escapeHtml(p.name)+'</div></div><span class="tag">'+p.line+'</span></div><span class="threshold-badge">'+p.line+' '+w.warn+'/'+w.danger+'m</span>'+heat+'<div class="meta"><span>Total <strong>'+formatTime(p.totalSeconds)+'</strong></span><span>Stint <strong>'+formatTime(p.currentStintSeconds)+'</strong></span><span>Bench <strong>'+formatTime(p.currentBenchSeconds)+'</strong></span><span>INT <strong>'+p.interchanges+'</strong></span></div><div class="sub-meta">Last move: '+escapeHtml(p.lastMove||'')+'</div><div class="bar"><div class="bar-fill" style="width:'+progress+'%"></div></div><div class="move-row">'+['DEF','MID','FWD','BENCH'].map(function(l){return '<button class="move-btn" data-action="move" data-id="'+p.id+'" data-lane="'+l+'">'+l+'</button>';}).join('')+'</div></div><div class="card-actions"><button class="btn ghost small" data-action="remove" data-id="'+p.id+'">Remove</button></div></div>' + '<div class="stats">' + ['clearances:CLR','inside50s:I50','rebound50s:R50','tackles:TKL','marks:MRK','disposals:DISP','goals:GL'].map(function(spec){ var sp=spec.split(':'); var key=sp[0], label=sp[1]; return '<div class="stat" data-action="stat-add" data-id="'+p.id+'" data-stat="'+key+'"><div class="stat-label">'+label+'</div><div class="stat-value">'+(+p[key]||0)+'</div><div class="stat-sub" data-action="stat-subtract" data-id="'+p.id+'" data-stat="'+key+'">undo</div></div>'; }).join('') + '</div></article>'; }
+      function attachCardDnD(){ document.querySelectorAll('.card.draggable').forEach(function(card){ card.addEventListener('dragstart', function(e){ draggedId=parseInt(this.getAttribute('data-player-id'),10); this.classList.add('dragging'); try{e.dataTransfer.setData('text/plain', String(draggedId));}catch(err){} }); card.addEventListener('dragend', function(){ this.classList.remove('dragging'); draggedId=null; }); }); }
+      function renderLanes(){ var arr = state.players.slice().sort(function(a,b){return b.totalSeconds-a.totalSeconds;}); if(state.filterMode==='active') arr=arr.filter(function(p){return p.onGround;}); if(state.filterMode==='bench') arr=arr.filter(function(p){return !p.onGround;}); var defs=arr.filter(function(p){return p.line==='DEF';}), mids=arr.filter(function(p){return p.line==='MID';}), fwds=arr.filter(function(p){return p.line==='FWD';}), bench=arr.filter(function(p){return p.line==='BENCH';}); $('defLaneNote').textContent=defs.length+' players'; $('midLaneNote').textContent=mids.length+' players'; $('fwdLaneNote').textContent=fwds.length+' players'; $('benchLaneNote').textContent=bench.length+' players'; $('defLane').innerHTML = defs.length ? '<div class="cards-grid">'+defs.map(renderCard).join('')+'</div>' : '<div class="empty">No players in DEF.</div>'; $('midLane').innerHTML = mids.length ? '<div class="cards-grid">'+mids.map(renderCard).join('')+'</div>' : '<div class="empty">No players in MID.</div>'; $('fwdLane').innerHTML = fwds.length ? '<div class="cards-grid">'+fwds.map(renderCard).join('')+'</div>' : '<div class="empty">No players in FWD.</div>'; $('benchLane').innerHTML = bench.length ? '<div class="cards-grid">'+bench.map(renderCard).join('')+'</div>' : '<div class="empty">No players in BENCH.</div>'; attachCardDnD(); }
+      function buildRotationAlert(){ var t=totals(), lc=lineCounts(), alerts=[]; if(t.onGround!==state.onGroundTarget){ var d=t.onGround-state.onGroundTarget; alerts.push(d>0 ? 'Too many on ground: +'+d : 'Under target on ground: '+Math.abs(d)+' short'); } if(lc.DEF!==state.lineQuotas.DEF) alerts.push('DEF quota '+lc.DEF+'/'+state.lineQuotas.DEF); if(lc.MID!==state.lineQuotas.MID) alerts.push('MID quota '+lc.MID+'/'+state.lineQuotas.MID); if(lc.FWD!==state.lineQuotas.FWD) alerts.push('FWD quota '+lc.FWD+'/'+state.lineQuotas.FWD); $('rotationAlert').innerHTML = alerts.length ? '<div class="alert">Rotation alert — '+alerts.join(' | ')+'</div>' : ''; }
+      function buildSummary(){ var sorted=state.players.slice().sort(function(a,b){return b.totalSeconds-a.totalSeconds;}); var html='<table><thead><tr><th>No.</th><th>Player</th><th>Lane</th><th>Window</th><th>Total Time</th><th>Bench Time</th><th>INT</th><th>Last Move</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>CLR</th><th>I50</th><th>R50</th><th>TKL</th><th>MRK</th><th>DISP</th><th>GL</th></tr></thead><tbody>'; html += sorted.length ? sorted.map(function(p){ var w=getRoleWindow(p); return '<tr><td class="num">'+escapeHtml(p.number)+'</td><td>'+escapeHtml(p.name)+'</td><td>'+p.line+'</td><td class="num">'+p.line+' '+w.warn+'/'+w.danger+'</td><td class="num">'+formatTime(p.totalSeconds)+'</td><td class="num">'+formatTime(p.currentBenchSeconds)+'</td><td class="num">'+p.interchanges+'</td><td>'+escapeHtml(p.lastMove||'')+'</td><td class="num">'+formatTime(p.quarterSeconds[0]||0)+'</td><td class="num">'+formatTime(p.quarterSeconds[1]||0)+'</td><td class="num">'+formatTime(p.quarterSeconds[2]||0)+'</td><td class="num">'+formatTime(p.quarterSeconds[3]||0)+'</td><td class="num">'+(p.clearances||0)+'</td><td class="num">'+(p.inside50s||0)+'</td><td class="num">'+(p.rebound50s||0)+'</td><td class="num">'+(p.tackles||0)+'</td><td class="num">'+(p.marks||0)+'</td><td class="num">'+(p.disposals||0)+'</td><td class="num">'+(p.goals||0)+'</td></tr>'; }).join('') : '<tr><td colspan="19">No players added yet.</td></tr>'; html += '</tbody></table>'; $('summaryWrap').innerHTML=html; }
+      function buildSummaryText(){ var t=totals(); var lines=[]; lines.push((state.teamName||'Our Team')+' '+state.teamGoals+'.'+state.teamBehinds+' ('+score(state.teamGoals,state.teamBehinds)+') vs '+(state.oppName||'Opponent')+' '+state.oppGoals+'.'+state.oppBehinds+' ('+score(state.oppGoals,state.oppBehinds)+')'); lines.push('Opposition team stats | CLR '+state.oppositionStats.clearances+' | I50 '+state.oppositionStats.inside50s+' | R50 '+state.oppositionStats.rebound50s+' | TKL '+state.oppositionStats.tackles); lines.push('Current quarter: Q'+state.quarter+' | Quarter Clock '+formatTime(state.quarterClockSeconds)+' | Total elapsed '+formatTime(state.totalMatchSeconds)+' | On Ground '+t.onGround+' | Bench '+t.bench+' | Interchanges '+t.interchanges); lines.push('No | Player | Lane | Window | Time | Bench | INT | Last Move | Q1 | Q2 | Q3 | Q4 | CLR | I50 | R50 | TKL | MRK | DISP | GL'); lines.push('--------------------------------------------------------------------------------------------------------------------------------'); state.players.slice().sort(function(a,b){return b.totalSeconds-a.totalSeconds;}).forEach(function(p){ var w=getRoleWindow(p); lines.push(numberText(p.number)+' | '+p.name+' | '+p.line+' | '+p.line+' '+w.warn+'/'+w.danger+' | '+formatTime(p.totalSeconds)+' | '+formatTime(p.currentBenchSeconds)+' | '+p.interchanges+' | '+(p.lastMove||'')+' | '+formatTime(p.quarterSeconds[0]||0)+' | '+formatTime(p.quarterSeconds[1]||0)+' | '+formatTime(p.quarterSeconds[2]||0)+' | '+formatTime(p.quarterSeconds[3]||0)+' | '+(p.clearances||0)+' | '+(p.inside50s||0)+' | '+(p.rebound50s||0)+' | '+(p.tackles||0)+' | '+(p.marks||0)+' | '+(p.disposals||0)+' | '+(p.goals||0)); }); return lines.join('\n'); }
+      function copyText(text){ if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function(){ alert('Summary copied to clipboard.'); }).catch(function(){ fallbackCopy(text); }); else fallbackCopy(text); }
+      function fallbackCopy(text){ var ta=document.createElement('textarea'); ta.value=text; ta.style.position='fixed'; ta.style.left='-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); alert('Summary copied to clipboard.'); }
+      function csvEscape(v){ var s=String(v==null?'':v); return /[",\n]/.test(s) ? '"'+s.replace(/"/g,'""')+'"' : s; }
+      function downloadCsv(){ var rows=[[ 'No','Player','Lane','Window','Total Time','Bench Time','Interchanges','Last Move','Q1','Q2','Q3','Q4','Clearances','Inside 50s','Rebound 50s','Tackles','Marks','Disposals','Goals' ]]; state.players.slice().sort(function(a,b){return b.totalSeconds-a.totalSeconds;}).forEach(function(p){ var w=getRoleWindow(p); rows.push([numberText(p.number),p.name,p.line,p.line+' '+w.warn+'/'+w.danger,formatTime(p.totalSeconds),formatTime(p.currentBenchSeconds),p.interchanges,p.lastMove||'',formatTime(p.quarterSeconds[0]||0),formatTime(p.quarterSeconds[1]||0),formatTime(p.quarterSeconds[2]||0),formatTime(p.quarterSeconds[3]||0),p.clearances,p.inside50s,p.rebound50s,p.tackles,p.marks,p.disposals,p.goals]); }); rows.push([]); rows.push(['Opposition Team Stats','','','','','','','','','','','','Clearances','Inside 50s','Rebound 50s','Tackles']); rows.push(['','','','','','','','','','','','',state.oppositionStats.clearances,state.oppositionStats.inside50s,state.oppositionStats.rebound50s,state.oppositionStats.tackles]); var csv=rows.map(function(r){return r.map(csvEscape).join(',');}).join('\n'); var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'}); var url=URL.createObjectURL(blob); var a=document.createElement('a'); a.href=url; a.download='obgfc-aflw-v10-fixed-summary-q'+state.quarter+'.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); }
+      function refreshMiniStats(){ var t=totals(); $('playersCount').textContent=String(state.players.length); $('onGroundCount').textContent=String(t.onGround); $('benchCount').textContent=String(t.bench); $('interchangesCount').textContent=String(t.interchanges); $('teamClearances').textContent=String(t.clearances); $('teamI50s').textContent=String(t.inside50s); $('teamR50s').textContent=String(t.rebound50s); $('teamGoalsMini').textContent=String(t.goals); $('teamTackles').textContent=String(t.tackles); $('oppClrValue').textContent=String(state.oppositionStats.clearances); $('oppI50Value').textContent=String(state.oppositionStats.inside50s); $('oppR50Value').textContent=String(state.oppositionStats.rebound50s); $('oppTklValue').textContent=String(state.oppositionStats.tackles); $('oppClrMini').textContent=String(state.oppositionStats.clearances); $('oppI50Mini').textContent=String(state.oppositionStats.inside50s); $('oppR50Mini').textContent=String(state.oppositionStats.rebound50s); $('oppTklMini').textContent=String(state.oppositionStats.tackles); }
+      function render(){ document.body.classList.toggle('coach-mode', !!state.coachMode); $('coachModeBtn').textContent = state.coachMode ? '🎯 Coach Mode On' : '🎯 Coach Mode'; $('quarterClock').textContent=formatTime(state.quarterClockSeconds); $('quarterPill').textContent='Q'+state.quarter; $('startPauseBtn').textContent = state.matchRunning ? '⏸ Pause Match' : '▶ Start Match'; $('startPauseBtn').className = 'btn ' + (state.matchRunning ? 'orange' : 'green'); refreshMiniStats(); renderScoreboard(); renderLanes(); renderQuarterGrid(); renderEventLog(); buildRotationAlert(); refreshSheetSelect(); }
+
+      function safeOn(id, evt, fn){ var el=$(id); if(el) el.addEventListener(evt, fn); }
+      function bindDnD(){ document.querySelectorAll('[data-drop-zone]').forEach(function(zone){ zone.addEventListener('dragover', function(e){e.preventDefault(); this.classList.add('drag-over');}); zone.addEventListener('dragleave', function(){this.classList.remove('drag-over');}); zone.addEventListener('drop', function(e){ e.preventDefault(); this.classList.remove('drag-over'); var lane=this.getAttribute('data-drop-zone'); if(draggedId!==null) movePlayerToLane(draggedId, lane); }); }); }
+      function bindEvents(){
+        safeOn('teamName','input', function(){ state.teamName=this.value||'Our Team'; saveState(); renderScoreboard(); });
+        safeOn('oppName','input', function(){ state.oppName=this.value||'Opponent'; saveState(); renderScoreboard(); });
+        safeOn('teamGoalBtn','click', function(){ state.teamGoals+=1; addEvent((state.teamName||'Our Team')+' goal'); saveState(); render(); });
+        safeOn('teamBehindBtn','click', function(){ state.teamBehinds+=1; addEvent((state.teamName||'Our Team')+' behind'); saveState(); render(); });
+        safeOn('oppGoalBtn','click', function(){ state.oppGoals+=1; addEvent((state.oppName||'Opponent')+' goal'); saveState(); render(); });
+        safeOn('oppBehindBtn','click', function(){ state.oppBehinds+=1; addEvent((state.oppName||'Opponent')+' behind'); saveState(); render(); });
+        safeOn('startPauseBtn','click', function(){ state.matchRunning=!state.matchRunning; addEvent(state.matchRunning?'Match started':'Match paused'); saveState(); syncTimer(); render(); });
+        safeOn('nextQuarterBtn','click', function(){ if(state.quarter<4) state.quarter+=1; state.quarterClockSeconds=0; state.players.forEach(function(p){ if(p.onGround) p.interchanges+=1; p.onGround=false; p.line='BENCH'; p.currentStintSeconds=0; p.currentBenchSeconds=0; p.lastMove='Q'+state.quarter+' 00:00 to BENCH';}); addEvent('Moved to Q'+state.quarter+' and reset visible quarter clock'); saveState(); render(); });
+        safeOn('addPlayerBtn','click', function(){ openModal($('playerModal'), $('playerNumberInput')); });
+        safeOn('bulkAddBtn','click', function(){ openModal($('bulkModal'), $('bulkNamesInput')); });
+        safeOn('summaryBtn','click', function(){ buildSummary(); openModal($('summaryModal')); });
+        safeOn('resetBtn','click', function(){ if(!window.confirm('Reset the full match, scoreboard, opposition stats and all players/stats?')) return; state=clone(DEFAULT_STATE); hydrateInputs(); saveState(); syncTimer(); render(); });
+        safeOn('clearSavedBtn','click', function(){ if(!window.confirm('Clear saved local data on this device?')) return; localStorage.removeItem(STORAGE_KEY); state=clone(DEFAULT_STATE); hydrateInputs(); syncTimer(); render(); });
+        safeOn('coachModeBtn','click', function(){ state.coachMode=!state.coachMode; hydrateInputs(); saveState(); render(); });
+        safeOn('quarterLength','change', function(){ state.quarterLengthMinutes=clamp(this.value,5,30,20); hydrateInputs(); saveState(); render(); });
+        safeOn('onGroundTarget','change', function(){ state.onGroundTarget=clamp(this.value,10,18,18); hydrateInputs(); saveState(); render(); });
+        safeOn('defQuota','change', function(){ state.lineQuotas.DEF=clamp(this.value,0,18,6); hydrateInputs(); saveState(); render(); });
+        safeOn('midQuota','change', function(){ state.lineQuotas.MID=clamp(this.value,0,18,6); hydrateInputs(); saveState(); render(); });
+        safeOn('fwdQuota','change', function(){ state.lineQuotas.FWD=clamp(this.value,0,18,6); hydrateInputs(); saveState(); render(); });
+        safeOn('preset666','click', function(){ state.lineQuotas={DEF:6,MID:6,FWD:6}; hydrateInputs(); saveState(); render(); addEvent('Applied quota preset 6 | 6 | 6'); });
+        safeOn('preset756','click', function(){ state.lineQuotas={DEF:7,MID:5,FWD:6}; hydrateInputs(); saveState(); render(); addEvent('Applied quota preset 7 | 5 | 6'); });
+        safeOn('preset657','click', function(){ state.lineQuotas={DEF:6,MID:5,FWD:7}; hydrateInputs(); saveState(); render(); addEvent('Applied quota preset 6 | 5 | 7'); });
+        function setWindow(key, warn, danger){ var w=clamp($(warn).value,1,40,DEFAULT_STATE.roleWindows[key].warn), d=clamp($(danger).value,1,40,DEFAULT_STATE.roleWindows[key].danger); if(w>d) w=d; state.roleWindows[key]={warn:w,danger:d}; $('defaultWarn').value=state.roleWindows.default.warn; $('defaultDanger').value=state.roleWindows.default.danger; $('defaultWarn2').value=state.roleWindows.default.warn; $('defaultDanger2').value=state.roleWindows.default.danger; saveState(); render(); }
+        ['midWarn','midDanger'].forEach(function(id){ safeOn(id,'change', function(){ setWindow('mid','midWarn','midDanger'); }); });
+        ['fwdWarn','fwdDanger'].forEach(function(id){ safeOn(id,'change', function(){ setWindow('fwd','fwdWarn','fwdDanger'); }); });
+        ['defWarn','defDanger'].forEach(function(id){ safeOn(id,'change', function(){ setWindow('def','defWarn','defDanger'); }); });
+        ['defaultWarn','defaultDanger','defaultWarn2','defaultDanger2'].forEach(function(id){ safeOn(id,'change', function(){ setWindow('default', id.indexOf('Warn')>=0?id:'defaultWarn', id.indexOf('Danger')>=0?id:'defaultDanger'); }); });
+
+        var playerForm=$('playerForm');
+        if(playerForm) playerForm.addEventListener('submit', function(e){ e.preventDefault(); var number=numberText($('playerNumberInput').value||''); var name=($('playerNameInput').value||'').trim(); var line=normaliseLane($('playerLineInput').value||'BENCH'); if(!name){ $('playerNameInput').focus(); return; } state.players.push(createPlayer(number,name,line)); addEvent('#'+number+' '+name+' added to '+line); this.reset(); closeModal($('playerModal')); saveState(); render(); });
+        var bulkForm=$('bulkForm');
+        if(bulkForm) bulkForm.addEventListener('submit', function(e){ e.preventDefault(); var rows=($('bulkNamesInput').value||'').split(/\r?\n/), added=0; rows.forEach(function(raw){ raw=raw.trim(); if(!raw) return; var parts=raw.split(' - '), number='', name='', line='BENCH'; if(parts.length>=3){ number=numberText(parts[0]); name=(parts[1]||'').trim(); line=normaliseLane(parts.slice(2).join(' - ')); } else if(parts.length===2){ if(/^\d+$/.test(parts[0].trim())){ number=numberText(parts[0]); name=(parts[1]||'').trim(); } else { name=(parts[0]||'').trim(); line=normaliseLane(parts[1]||'BENCH'); } } else { name=raw; } if(!name) return; state.players.push(createPlayer(number,name,line)); added++; }); if(!added){ $('bulkNamesInput').focus(); return; } addEvent('Bulk added '+added+' players'); this.reset(); closeModal($('bulkModal')); saveState(); render(); });
+        safeOn('copySummaryBtn','click', function(){ copyText(buildSummaryText()); });
+        safeOn('downloadCsvBtn','click', downloadCsv);
+        safeOn('saveSheetBtn','click', function(){ var name=($('sheetName').value||'').trim(); if(!name){ $('sheetName').focus(); return; } state.teamSheets[name]=state.players.map(function(p){ return {number:p.number,name:p.name,line:p.line}; }); addEvent('Saved team sheet '+name); hydrateInputs(); saveState(); });
+        safeOn('loadSheetBtn','click', function(){ var key=$('sheetSelect').value; if(!key || !state.teamSheets[key]) return; state.players=[]; state.nextId=1; state.teamSheets[key].forEach(function(p){ state.players.push(createPlayer(p.number,p.name,p.line)); }); addEvent('Loaded team sheet '+key); saveState(); render(); });
+        safeOn('deleteSheetBtn','click', function(){ var key=$('sheetSelect').value; if(!key || !state.teamSheets[key]) return; if(!window.confirm('Delete saved team sheet '+key+'?')) return; delete state.teamSheets[key]; addEvent('Deleted team sheet '+key); hydrateInputs(); saveState(); });
+
+        document.addEventListener('click', function(e){ var closeBtn=e.target.closest('[data-close]'); if(closeBtn){ closeModal($(closeBtn.getAttribute('data-close'))); return; } if(e.target.classList.contains('modal')){ closeModal(e.target); return; }
+          var oppBtn=e.target.closest('[data-opp-stat]'); if(oppBtn){ updateOppStat(oppBtn.getAttribute('data-opp-stat'), parseInt(oppBtn.getAttribute('data-delta'),10)||0); return; }
+          var chip=e.target.closest('[data-filter]'); if(chip){ state.filterMode=chip.getAttribute('data-filter'); saveState(); hydrateInputs(); render(); return; }
+          var actionEl=e.target.closest('[data-action]'); if(!actionEl) return; var action=actionEl.getAttribute('data-action'); var id=parseInt(actionEl.getAttribute('data-id'),10); var stat=actionEl.getAttribute('data-stat'); var lane=actionEl.getAttribute('data-lane'); if(action==='move' && lane){ movePlayerToLane(id,lane); return; } if(isNaN(id)) return; if(action==='remove'){ removePlayer(id); return; } if(action==='stat-add' || action==='stat-subtract'){ updatePlayerStat(id, stat, action==='stat-add'?1:-1); }
+        });
+        document.addEventListener('keydown', function(e){ if(e.key==='Escape'){ closeModal($('playerModal')); closeModal($('bulkModal')); closeModal($('summaryModal')); } });
+        bindDnD();
+      }
+
+      hydrateInputs(); bindEvents(); syncTimer(); render();
+    })();
+  </script>
+</body>
+</html>
