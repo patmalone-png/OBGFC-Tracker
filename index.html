@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#ffffff" />
+  <title>OBGFC AFLW Match Tracker v9</title>
+  <style>
+    :root {
+      --page-bg: #ffffff;
+      --page-text: #0f172a;
+      --card-bg: #112542;
+      --card-bg-2: #173156;
+      --panel-bg: #ffffff;
+      --panel-border: rgba(15,23,42,0.10);
+      --panel-shadow: 0 12px 28px rgba(15,23,42,0.08);
+      --muted: #64748b;
+      --line: rgba(15,23,42,0.08);
+      --blue: #2563eb;
+      --blue-soft: rgba(37,99,235,0.10);
+      --green: #16a34a;
+      --green-soft: rgba(22,163,74,0.10);
+      --orange: #f59e0b;
+      --orange-soft: rgba(245,158,11,0.12);
+      --red: #ef4444;
+      --red-soft: rgba(239,68,68,0.12);
+      --purple: #7c3aed;
+      --purple-soft: rgba(124,58,237,0.12);
+      --def: #3b82f6;
+      --mid: #f59e0b;
+      --fwd: #8b5cf6;
+      --bench: #94a3b8;
+      --radius: 16px;
+      --shadow: 0 10px 24px rgba(15,23,42,0.10);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--page-bg); color: var(--page-text); }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      -webkit-tap-highlight-color: transparent;
+    }
+    body.coach-mode { font-size: 18px; }
+
+    .app { max-width: 1700px; margin: 0 auto; padding-bottom: 100px; }
+    .topbar {
+      position: sticky; top: 0; z-index: 30;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--panel-border);
+      padding: env(safe-area-inset-top) 14px 12px;
+    }
+    .topbar-inner { display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 22px; font-weight: 900; color: var(--page-text); }
+    .sub { margin-top: 4px; color: var(--muted); font-size: 12px; }
+    .clock-wrap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+    .pill {
+      min-width: 62px; text-align: center; padding: 8px 12px; border-radius: 999px;
+      border: 1px solid rgba(37,99,235,0.25); color: var(--blue); background: rgba(37,99,235,0.08);
+      font-size: 12px; font-weight: 800; letter-spacing: 0.06em;
+    }
+    .clock {
+      min-width: 170px; border-radius: 16px; background: #0f172a; color: #fff;
+      border: 1px solid rgba(255,255,255,0.08); box-shadow: var(--shadow); text-align: center; padding: 10px 14px;
+    }
+    .clock .label { font-size: 11px; color: rgba(255,255,255,0.70); text-transform: uppercase; letter-spacing: 0.07em; }
+    .clock .time { margin-top: 4px; font-size: 34px; line-height: 1; font-weight: 900; color: #93c5fd; font-variant-numeric: tabular-nums; }
+
+    .layout { display: grid; grid-template-columns: 440px minmax(0,1fr); gap: 16px; padding: 16px; align-items: start; }
+    .sidebar, .main { display: grid; gap: 16px; }
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      box-shadow: var(--panel-shadow);
+      overflow: hidden;
+    }
+    .panel.dark {
+      background: linear-gradient(180deg, #112542, #173156);
+      color: #fff;
+      border-color: rgba(255,255,255,0.08);
+      box-shadow: var(--shadow);
+    }
+    .panel-head { padding: 14px 14px 0; }
+    .panel-head h2 { margin: 0; font-size: 16px; font-weight: 900; }
+    .panel-head p { margin: 4px 0 0; color: var(--muted); font-size: 12px; }
+    .dark .panel-head p { color: rgba(255,255,255,0.70); }
+
+    .controls-grid, .settings-grid, .summary-grid, .score-grid, .role-grid, .opp-grid, .teamsheet-grid, .quota-grid {
+      display: grid; gap: 10px; padding: 14px;
+    }
+    .controls-grid, .settings-grid, .role-grid, .quota-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .summary-grid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+    .score-grid { grid-template-columns: 1fr 120px 1fr; align-items: end; }
+    .opp-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .teamsheet-grid { grid-template-columns: 1fr auto; align-items: end; }
+
+    button, input, textarea, select { font: inherit; }
+    .btn {
+      min-height: 46px; padding: 11px 14px; border: 1px solid var(--panel-border); border-radius: 12px;
+      color: var(--page-text); background: #f8fafc; cursor: pointer; font-weight: 800;
+      transition: transform 0.08s ease, opacity 0.2s ease;
+    }
+    .btn:hover { opacity: 0.97; }
+    .btn:active { transform: scale(0.99); }
+    .btn.green { background: var(--green-soft); border-color: rgba(22,163,74,0.35); color: #166534; }
+    .btn.orange { background: var(--orange-soft); border-color: rgba(245,158,11,0.35); color: #9a6700; }
+    .btn.red { background: var(--red-soft); border-color: rgba(239,68,68,0.35); color: #991b1b; }
+    .btn.blue { background: var(--blue-soft); border-color: rgba(37,99,235,0.30); color: #1d4ed8; }
+    .btn.purple { background: var(--purple-soft); border-color: rgba(124,58,237,0.30); color: #6d28d9; }
+    .btn.ghost { background: transparent; }
+    .btn.small { min-height: 36px; padding: 7px 10px; font-size: 12px; }
+
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field label { font-size: 11px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; }
+    .dark .field label { color: rgba(255,255,255,0.72); }
+    .field input, .field textarea, .field select {
+      width: 100%; background: #fff; color: var(--page-text); border: 1px solid var(--panel-border);
+      border-radius: 12px; padding: 12px; outline: none;
+    }
+    .dark .field input, .dark .field textarea, .dark .field select {
+      background: rgba(255,255,255,0.06); color: #fff; border-color: rgba(255,255,255,0.10);
+    }
+    .field textarea { min-height: 120px; resize: vertical; }
+    .inline2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .help-card {
+      padding: 12px; border-radius: 12px; border: 1px solid var(--panel-border); background: #f8fafc; font-size: 13px;
+    }
+    .dark .help-card { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.10); color: #fff; }
+
+    .mini, .opp-card, .quota-card {
+      background: #f8fafc; border: 1px solid var(--panel-border); border-radius: 14px; padding: 12px; text-align: center;
+    }
+    .mini .label, .opp-card .label, .quota-card .label { font-size: 11px; color: var(--muted); text-transform: uppercase; font-weight: 800; letter-spacing: 0.06em; }
+    .mini .value, .opp-card .value, .quota-card .value { margin-top: 6px; font-size: 22px; font-weight: 900; font-variant-numeric: tabular-nums; }
+    .opp-controls { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; margin-top: 8px; }
+
+    .score-card {
+      background: #f8fafc; border: 1px solid var(--panel-border); border-radius: 16px; padding: 14px;
+    }
+    .score-value { margin-top: 6px; font-size: 40px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+    .score-breakdown { margin-top: 8px; color: var(--muted); font-size: 12px; }
+    .score-center { text-align: center; padding-bottom: 12px; }
+    .margin-chip { display: inline-block; margin-top: 8px; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 900; }
+    .margin-win { color: #166534; background: rgba(22,163,74,0.14); border: 1px solid rgba(22,163,74,0.35); }
+    .margin-lose { color: #991b1b; background: rgba(239,68,68,0.14); border: 1px solid rgba(239,68,68,0.35); }
+    .margin-draw { color: #1d4ed8; background: rgba(37,99,235,0.14); border: 1px solid rgba(37,99,235,0.35); }
+
+    .line-board-wrap { padding: 14px; }
+    .line-board-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+    .line-board-head h2 { margin: 0; font-size: 16px; font-weight: 900; }
+    .line-board-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+    .filters { display: flex; gap: 8px; flex-wrap: wrap; }
+    .chip {
+      border: 1px solid var(--panel-border); background: #f8fafc; color: var(--muted);
+      border-radius: 999px; padding: 8px 10px; cursor: pointer; font-size: 12px; font-weight: 800;
+    }
+    .chip.active { background: rgba(37,99,235,0.10); color: var(--blue); border-color: rgba(37,99,235,0.28); }
+
+    .line-board { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; align-items: start; }
+    .lane {
+      border: 1px solid var(--panel-border); border-radius: 16px; background: #fff; overflow: hidden; min-height: 280px; box-shadow: var(--panel-shadow);
+    }
+    .lane-head { padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 10px; border-bottom: 1px solid var(--panel-border); }
+    .lane-head h3 { margin: 0; font-size: 14px; font-weight: 900; }
+    .lane-head .note { font-size: 12px; color: var(--muted); }
+    .lane-head.def h3 { color: var(--def); }
+    .lane-head.mid h3 { color: var(--mid); }
+    .lane-head.fwd h3 { color: var(--fwd); }
+    .lane-head.bench h3 { color: #64748b; }
+    .lane-body { padding: 12px; display: grid; gap: 10px; min-height: 180px; }
+    .lane-body.drag-over { outline: 2px dashed rgba(37,99,235,0.45); outline-offset: -6px; background: rgba(37,99,235,0.05); }
+    .bench-alert {
+      margin: 0 0 14px; padding: 12px 14px; border-radius: 12px; font-size: 13px; font-weight: 800;
+      border: 1px solid rgba(245,158,11,0.30); background: rgba(245,158,11,0.10); color: #9a6700;
+    }
+
+    .quarter-grid { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 8px; padding: 0 14px 14px; }
+    .quarter-box { border: 1px solid var(--panel-border); border-radius: 12px; padding: 10px; background: #f8fafc; text-align: center; }
+    .quarter-box .q { font-size: 11px; color: var(--muted); font-weight: 800; text-transform: uppercase; }
+    .quarter-box .t { margin-top: 6px; font-size: 18px; font-weight: 900; font-variant-numeric: tabular-nums; }
+
+    .event-log { padding: 0 14px 14px; }
+    .event-list { border: 1px solid var(--panel-border); border-radius: 12px; background: #fff; max-height: 260px; overflow: auto; }
+    .event-item { padding: 10px 12px; border-bottom: 1px solid var(--panel-border); font-size: 12px; }
+    .event-item:last-child { border-bottom: none; }
+    .event-time { color: var(--muted); font-weight: 900; margin-right: 8px; }
+
+    .empty { padding: 28px 18px; text-align: center; color: var(--muted); border: 1px dashed rgba(15,23,42,0.12); border-radius: 12px; background: #f8fafc; }
+    .cards-grid { display: grid; gap: 10px; }
+    .card {
+      border: 1px solid rgba(15,23,42,0.10); border-radius: 16px; overflow: hidden; background: linear-gradient(180deg, var(--card-bg), var(--card-bg-2));
+      color: #fff; transition: border-color 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+    .card.draggable { cursor: grab; }
+    .card.dragging { opacity: 0.45; }
+    .card.def { border-color: rgba(77,163,255,0.35); }
+    .card.mid { border-color: rgba(245,165,36,0.35); }
+    .card.fwd { border-color: rgba(139,92,246,0.35); }
+    .card.bench { border-color: rgba(148,163,184,0.35); }
+    .card.warning { border-color: rgba(245,165,36,0.55); }
+    .card.danger { border-color: rgba(239,68,68,0.60); box-shadow: 0 0 18px rgba(239,68,68,0.10); }
+
+    .card-main { display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: center; padding: 12px; }
+    .name-row { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+    .name-wrap { display: flex; gap: 8px; align-items: center; min-width: 0; }
+    .number-badge {
+      min-width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 999px; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.08);
+      color: #fff; font-weight: 900; font-size: 12px; flex-shrink: 0;
+    }
+    .name { font-size: 18px; font-weight: 900; line-height: 1.15; word-break: break-word; }
+    .card.warning .name { color: #fde68a; }
+    .card.danger .name { color: #fecaca; }
+    .tag {
+      padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap;
+      border: 1px solid rgba(255,255,255,0.10); color: rgba(255,255,255,0.88); background: rgba(255,255,255,0.07);
+    }
+    .threshold-badge {
+      margin-top: 8px; display: inline-block; padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 900;
+      background: rgba(147,197,253,0.14); color: #dbeafe; border: 1px solid rgba(147,197,253,0.28);
+    }
+    .heat-badge { margin-top: 8px; margin-left: 6px; display: inline-block; padding: 6px 8px; border-radius: 999px; font-size: 11px; font-weight: 900; }
+    .heat-ok { background: rgba(22,163,74,0.16); color: #bbf7d0; border: 1px solid rgba(22,163,74,0.35); }
+    .heat-warn { background: rgba(245,158,11,0.16); color: #fde68a; border: 1px solid rgba(245,158,11,0.35); }
+    .heat-hot { background: rgba(239,68,68,0.16); color: #fecaca; border: 1px solid rgba(239,68,68,0.35); }
+    .meta { margin-top: 6px; display: flex; gap: 10px; flex-wrap: wrap; font-size: 12px; color: rgba(255,255,255,0.72); }
+    .meta strong { color: #fff; font-variant-numeric: tabular-nums; }
+    .sub-meta { margin-top: 6px; color: rgba(255,255,255,0.60); font-size: 11px; }
+    .bar { height: 6px; border-radius: 999px; background: rgba(255,255,255,0.10); margin-top: 10px; overflow: hidden; }
+    .bar-fill { height: 100%; width: 0%; background: linear-gradient(90deg, #22c55e, #86efac); }
+    .card.warning .bar-fill { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+    .card.danger .bar-fill { background: linear-gradient(90deg, #ef4444, #fecaca); }
+    .card-actions { display: flex; flex-direction: column; gap: 8px; }
+    .move-row { margin-top: 10px; display: grid; gap: 6px; grid-template-columns: repeat(4, minmax(0,1fr)); }
+    .move-btn {
+      min-height: 34px; padding: 6px 6px; font-size: 11px; font-weight: 900; border-radius: 10px;
+      border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.08); color: #fff;
+    }
+
+    .stats { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 8px; padding: 0 12px 12px; }
+    .stat {
+      border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; background: rgba(255,255,255,0.06);
+      padding: 10px 6px; min-height: 70px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    }
+    .stat-label { font-size: 10px; color: rgba(255,255,255,0.70); font-weight: 900; letter-spacing: 0.06em; }
+    .stat-value { font-size: 20px; font-weight: 900; line-height: 1; }
+    .stat-sub { font-size: 10px; color: #fecaca; font-weight: 800; }
+
+    .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; padding: 16px; z-index: 100; }
+    .modal.open { display: flex; }
+    .modal-card {
+      width: min(100%, 1180px); background: #fff; border: 1px solid var(--panel-border);
+      border-radius: 18px; box-shadow: var(--panel-shadow); padding: 16px; color: var(--page-text);
+    }
+    .modal-card h3 { margin: 0 0 6px; font-size: 20px; font-weight: 900; }
+    .modal-card p { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+    .modal-actions { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+    .table-wrap { overflow: auto; border: 1px solid var(--panel-border); border-radius: 12px; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; min-width: 1560px; }
+    th, td { padding: 10px 12px; border-bottom: 1px solid var(--panel-border); text-align: left; font-size: 13px; }
+    th { font-size: 11px; color: var(--blue); text-transform: uppercase; letter-spacing: 0.05em; background: #f8fafc; }
+    td.num { text-align: center; font-variant-numeric: tabular-nums; }
+
+    .footer { padding: 2px 14px 24px; text-align: center; color: var(--muted); font-size: 12px; }
+    .boot-ok { color: #166534; font-weight: 800; }
+    .boot-bad { color: #991b1b; font-weight: 800; }
+
+    body.coach-mode .btn { min-height: 56px; font-size: 16px; }
+    body.coach-mode .name { font-size: 22px; }
+    body.coach-mode .card { border-radius: 20px; }
+    body.coach-mode .lane-head h3 { font-size: 18px; }
+    body.coach-mode .stat-value { font-size: 24px; }
+
+    @media (max-width: 1500px) { .line-board { grid-template-columns: repeat(2, minmax(0,1fr)); } }
+    @media (max-width: 1260px) { .layout { grid-template-columns: 1fr; } }
+    @media (max-width: 980px) {
+      .stats { grid-template-columns: repeat(4, minmax(0,1fr)); }
+      .summary-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .role-grid, .quota-grid, .opp-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 720px) {
+      .line-board { grid-template-columns: 1fr; }
+      .score-grid { grid-template-columns: 1fr; }
+      .score-center { order: -1; }
+      .quarter-grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .stats { grid-template-columns: repeat(3, minmax(0,1fr)); }
+      .move-row { grid-template-columns: repeat(2, minmax(0,1fr)); }
+      .teamsheet-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="topbar">
+      <div class="topbar-inner">
+        <div>
+          <h1>🏉 OBGFC AFLW Match Tracker v9</h1>
+          <div class="sub">Quarter clock resets each quarter • white background • line board, drag/drop, iPad coach mode, quotas, teamsheets, opposition stats, player numbers</div>
+        </div>
+        <div class="clock-wrap">
+          <div id="quarterPill" class="pill">Q1</div>
+          <div class="clock"><div class="label">Quarter Clock</div><div id="quarterClock" class="time">00:00</div></div>
+        </div>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <section class="panel">
+          <div class="panel-head"><h2>Scoreboard</h2><p>Track the team score and live margin.</p></div>
+          <div class="score-grid">
+            <div class="score-card">
+              <div class="field"><label for="teamName">Our Team</label><input id="teamName" type="text" maxlength="30" value="OBGFC" /></div>
+              <div id="teamScoreValue" class="score-value">0</div>
+              <div id="teamBreakdown" class="score-breakdown">0.0 (0)</div>
+              <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr; margin-top:10px;">
+                <button id="teamGoalBtn" class="btn green">+ Goal</button>
+                <button id="teamBehindBtn" class="btn blue">+ Behind</button>
+              </div>
+            </div>
+            <div class="score-center">
+              <div style="font-size:11px; color:var(--muted); font-weight:800; text-transform:uppercase; letter-spacing:0.06em;">Margin</div>
+              <div id="marginValue" class="score-value" style="font-size:30px;">0</div>
+              <div id="marginChip" class="margin-chip margin-draw">Level</div>
+            </div>
+            <div class="score-card">
+              <div class="field"><label for="oppName">Opponent</label><input id="oppName" type="text" maxlength="30" value="Opponent" /></div>
+              <div id="oppScoreValue" class="score-value">0</div>
+              <div id="oppBreakdown" class="score-breakdown">0.0 (0)</div>
+              <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr; margin-top:10px;">
+                <button id="oppGoalBtn" class="btn red">+ Goal</button>
+                <button id="oppBehindBtn" class="btn orange">+ Behind</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Opposition Team Stats</h2><p>Capture opposition totals only, not individuals.</p></div>
+          <div class="opp-grid">
+            <div class="opp-card"><div class="label">Opp CLR</div><div id="oppClrValue" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="clearances" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="clearances" data-delta="-1">-1</button></div></div>
+            <div class="opp-card"><div class="label">Opp I50</div><div id="oppI50Value" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="inside50s" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="inside50s" data-delta="-1">-1</button></div></div>
+            <div class="opp-card"><div class="label">Opp R50</div><div id="oppR50Value" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="rebound50s" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="rebound50s" data-delta="-1">-1</button></div></div>
+            <div class="opp-card"><div class="label">Opp TKL</div><div id="oppTklValue" class="value">0</div><div class="opp-controls"><button class="btn small blue" data-opp-stat="tackles" data-delta="1">+1</button><button class="btn small ghost" data-opp-stat="tackles" data-delta="-1">-1</button></div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Game Controls</h2><p>All major coach tools in one place.</p></div>
+          <div class="controls-grid">
+            <button id="startPauseBtn" class="btn green">▶ Start Match</button>
+            <button id="nextQuarterBtn" class="btn blue">⏭ Next Quarter</button>
+            <button id="addPlayerBtn" class="btn blue">+ Add Player</button>
+            <button id="bulkAddBtn" class="btn blue">+ Bulk Add</button>
+            <button id="summaryBtn" class="btn purple">📊 Summary</button>
+            <button id="resetBtn" class="btn red">↺ Reset Match</button>
+            <button id="coachModeBtn" class="btn purple">🎯 Coach Mode</button>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Global Settings</h2><p>Match-wide controls and fallback thresholds.</p></div>
+          <div class="settings-grid">
+            <div class="field"><label for="quarterLength">Quarter length</label><input id="quarterLength" type="number" min="5" max="30" step="1" value="20" /></div>
+            <div class="field"><label for="onGroundTarget">On ground target</label><input id="onGroundTarget" type="number" min="10" max="18" step="1" value="18" /></div>
+            <div class="field"><label for="defaultWarn">Default warn</label><input id="defaultWarn" type="number" min="1" max="40" step="1" value="8" /></div>
+            <div class="field"><label for="defaultDanger">Default danger</label><input id="defaultDanger" type="number" min="1" max="40" step="1" value="12" /></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Line Quotas & Presets</h2><p>Set target numbers by line and apply quick presets.</p></div>
+          <div class="quota-grid">
+            <div class="field"><label for="defQuota">DEF quota</label><input id="defQuota" type="number" min="0" max="18" step="1" value="6" /></div>
+            <div class="field"><label for="midQuota">MID quota</label><input id="midQuota" type="number" min="0" max="18" step="1" value="6" /></div>
+            <div class="field"><label for="fwdQuota">FWD quota</label><input id="fwdQuota" type="number" min="0" max="18" step="1" value="6" /></div>
+            <div class="help-card"><strong>Preset formations</strong><div style="display:grid; grid-template-columns:1fr; gap:8px; margin-top:8px;"><button id="preset666" class="btn small blue">Apply 6 | 6 | 6</button><button id="preset756" class="btn small blue">Apply 7 | 5 | 6</button><button id="preset657" class="btn small blue">Apply 6 | 5 | 7</button></div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Role Time Windows</h2><p>Set custom warning / danger times by line.</p></div>
+          <div class="role-grid">
+            <div class="help-card"><strong>MID</strong><div class="inline2" style="margin-top:8px;"><input id="midWarn" type="number" min="1" max="40" step="1" value="6" /><input id="midDanger" type="number" min="1" max="40" step="1" value="9" /></div><div style="margin-top:6px; color:var(--muted); font-size:12px;">Left = warn, right = danger</div></div>
+            <div class="help-card"><strong>FWD</strong><div class="inline2" style="margin-top:8px;"><input id="fwdWarn" type="number" min="1" max="40" step="1" value="8" /><input id="fwdDanger" type="number" min="1" max="40" step="1" value="11" /></div><div style="margin-top:6px; color:var(--muted); font-size:12px;">Left = warn, right = danger</div></div>
+            <div class="help-card"><strong>DEF</strong><div class="inline2" style="margin-top:8px;"><input id="defWarn" type="number" min="1" max="40" step="1" value="9" /><input id="defDanger" type="number" min="1" max="40" step="1" value="13" /></div><div style="margin-top:6px; color:var(--muted); font-size:12px;">Left = warn, right = danger</div></div>
+            <div class="help-card"><strong>How it works</strong><div style="margin-top:8px; color:var(--page-text); font-size:13px;">Moving a player into <strong>DEF</strong>, <strong>MID</strong>, or <strong>FWD</strong> marks them as on ground in that line. Moving them into <strong>BENCH</strong> marks them off ground. The quarter clock in the top corner resets each time you press <strong>Next Quarter</strong>.</div></div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Save / Load Team Sheets</h2><p>Store squad lists locally on this device.</p></div>
+          <div class="teamsheet-grid">
+            <div class="field"><label for="sheetName">Team sheet name</label><input id="sheetName" type="text" maxlength="40" placeholder="e.g. Seniors Round 1" /></div>
+            <button id="saveSheetBtn" class="btn blue">Save Sheet</button>
+            <div class="field"><label for="sheetSelect">Saved sheets</label><select id="sheetSelect"></select></div>
+            <div style="display:grid; gap:8px; grid-template-columns:1fr 1fr;">
+              <button id="loadSheetBtn" class="btn green">Load</button>
+              <button id="deleteSheetBtn" class="btn red">Delete</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Team Snapshot</h2><p>Live team totals, line mix and differentials.</p></div>
+          <div class="summary-grid">
+            <div class="mini"><div class="label">Players</div><div id="playersCount" class="value">0</div></div>
+            <div class="mini"><div class="label">On Ground</div><div id="onGroundCount" class="value">0</div></div>
+            <div class="mini"><div class="label">Bench</div><div id="benchCount" class="value">0</div></div>
+            <div class="mini"><div class="label">Interchanges</div><div id="interchangesCount" class="value">0</div></div>
+            <div class="mini"><div class="label">Our CLR</div><div id="teamClearances" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp CLR</div><div id="oppClrMini" class="value">0</div></div>
+            <div class="mini"><div class="label">Our I50</div><div id="teamI50s" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp I50</div><div id="oppI50Mini" class="value">0</div></div>
+            <div class="mini"><div class="label">Our R50</div><div id="teamR50s" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp R50</div><div id="oppR50Mini" class="value">0</div></div>
+            <div class="mini"><div class="label">Our TKL</div><div id="teamTackles" class="value">0</div></div>
+            <div class="mini"><div class="label">Opp TKL</div><div id="oppTklMini" class="value">0</div></div>
+          </div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <section class="panel">
+          <div class="line-board-wrap">
+            <div class="line-board-head">
+              <div>
+                <h2>Line Grouped Board</h2>
+                <p>Drag and drop cards into DEF, MID, FWD or BENCH. On mobile, use the move buttons.</p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <div class="filters">
+                  <button class="chip active" data-filter="all">All</button>
+                  <button class="chip" data-filter="active">On Ground</button>
+                  <button class="chip" data-filter="bench">Bench</button>
+                </div>
+                <button id="clearSavedBtnMain" class="btn ghost small">Clear local data</button>
+              </div>
+            </div>
+            <div id="benchAlert"></div>
+            <div class="line-board">
+              <section class="lane"><div class="lane-head def"><h3>DEF</h3><div id="defLaneNote" class="note">0 players</div></div><div id="defLane" class="lane-body" data-drop-zone="DEF"></div></section>
+              <section class="lane"><div class="lane-head mid"><h3>MID</h3><div id="midLaneNote" class="note">0 players</div></div><div id="midLane" class="lane-body" data-drop-zone="MID"></div></section>
+              <section class="lane"><div class="lane-head fwd"><h3>FWD</h3><div id="fwdLaneNote" class="note">0 players</div></div><div id="fwdLane" class="lane-body" data-drop-zone="FWD"></div></section>
+              <section class="lane"><div class="lane-head bench"><h3>BENCH</h3><div id="benchLaneNote" class="note">0 players</div></div><div id="benchLane" class="lane-body" data-drop-zone="BENCH"></div></section>
+            </div>
+          </div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Quarter Time Distribution</h2><p>Quarter-by-quarter time on ground totals across the squad.</p></div>
+          <div id="quarterGrid" class="quarter-grid"></div>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head"><h2>Recent Events</h2><p>Latest scoreboard, lane moves and stat actions.</p></div>
+          <div class="event-log"><div id="eventList" class="event-list"></div></div>
+        </section>
+      </main>
+    </div>
+
+    <div class="footer">
+      Everything saves locally in your browser on this device. The visible clock is now the <strong>quarter clock</strong> and resets when you press <strong>Next Quarter</strong>.<br>
+      <span id="bootStatus" class="boot-ok">App loaded successfully.</span>
+    </div>
+  </div>
+
+  <div id="playerModal" class="modal" aria-hidden="true">
+    <div class="modal-card" style="width:min(100%, 640px);">
+      <h3>Add Player</h3>
+      <p>Add one player to the tracker.</p>
+      <form id="playerForm">
+        <div class="inline2">
+          <div class="field"><label for="playerNumberInput">Playing number</label><input id="playerNumberInput" type="number" min="0" max="99" step="1" placeholder="e.g. 12" /></div>
+          <div class="field"><label for="playerLineInput">Starting line</label><input id="playerLineInput" type="text" maxlength="30" placeholder="DEF / MID / FWD / BENCH" autocomplete="off" /></div>
+        </div>
+        <div class="field"><label for="playerNameInput">Player name</label><input id="playerNameInput" type="text" maxlength="60" placeholder="e.g. M. Malone" autocomplete="off" required /></div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-close="playerModal">Cancel</button>
+          <button type="submit" class="btn blue">Add Player</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="bulkModal" class="modal" aria-hidden="true">
+    <div class="modal-card" style="width:min(100%, 720px);">
+      <h3>Bulk Add Players</h3>
+      <p>Paste one player per line. Recommended format: <strong>12 - Jess Howard - MID</strong></p>
+      <form id="bulkForm">
+        <div class="field"><label for="bulkNamesInput">Squad list</label><textarea id="bulkNamesInput" placeholder="12 - Jess Howard - MID&#10;3 - Grace Kelly - FWD&#10;24 - Tilly Jones - DEF"></textarea></div>
+        <div class="modal-actions">
+          <button type="button" class="btn ghost" data-close="bulkModal">Cancel</button>
+          <button type="submit" class="btn blue">Add Squad</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="summaryModal" class="modal" aria-hidden="true">
+    <div class="modal-card">
+      <h3>Match Summary</h3>
+      <p>Copy to clipboard or export CSV after the game.</p>
+      <div id="summaryWrap" class="table-wrap"></div>
+      <div class="modal-actions">
+        <button type="button" class="btn ghost" data-close="summaryModal">Close</button>
+        <button type="button" id="copySummaryBtn" class="btn purple">📋 Copy Summary</button>
+        <button type="button" id="downloadCsvBtn" class="btn blue">⬇ Download CSV</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      var STORAGE_KEY = 'obgfc-aflw-tracker-v9';
+      var DEFAULT_STATE = {
+        matchRunning: false,
+        totalMatchSeconds: 0,
+        quarterClockSeconds: 0,
+        quarter: 1,
+        quarterLengthMinutes: 20,
+        onGroundTarget: 18,
+        lineQuotas: { DEF: 6, MID: 6, FWD: 6 },
+        filterMode: 'all',
+        coachMode: false,
+        nextId: 1,
+        teamName: 'OBGFC',
+        oppName: 'Opponent',
+        teamGoals: 0,
+        teamBehinds: 0,
+        oppGoals: 0,
+        oppBehinds: 0,
+        oppositionStats: { clearances: 0, inside50s: 0, rebound50s: 0, tackles: 0 },
+        roleWindows: {
+          default: { warn: 8, danger: 12 },
+          mid: { warn: 6, danger: 9 },
+          fwd: { warn: 8, danger: 11 },
+          def: { warn: 9, danger: 13 }
+        },
+        teamSheets: {},
+        players: [],
+        eventLog: []
+      };
+
+      function clone(obj) { return JSON.parse(JSON.stringify(obj)); }
+      function $(id) { return document.getElementById(id); }
+      function pad2(n) { return (n < 10 ? '0' : '') + n; }
+      function score(goals, behinds) { return (goals * 6) + behinds; }
+      function setBootError(message) { var el = $('bootStatus'); if (el) { el.className = 'boot-bad'; el.textContent = message; } }
+      window.onerror = function (message) { setBootError('JavaScript error: ' + message); };
+
+      var els = {
+        quarterClock: $('quarterClock'), quarterPill: $('quarterPill'), teamName: $('teamName'), oppName: $('oppName'),
+        teamScoreValue: $('teamScoreValue'), oppScoreValue: $('oppScoreValue'), teamBreakdown: $('teamBreakdown'), oppBreakdown: $('oppBreakdown'), marginValue: $('marginValue'), marginChip: $('marginChip'),
+        teamGoalBtn: $('teamGoalBtn'), teamBehindBtn: $('teamBehindBtn'), oppGoalBtn: $('oppGoalBtn'), oppBehindBtn: $('oppBehindBtn'),
+        startPauseBtn: $('startPauseBtn'), nextQuarterBtn: $('nextQuarterBtn'), addPlayerBtn: $('addPlayerBtn'), bulkAddBtn: $('bulkAddBtn'), summaryBtn: $('summaryBtn'), resetBtn: $('resetBtn'), clearSavedBtn: $('clearSavedBtn'), clearSavedBtnMain: $('clearSavedBtnMain'), coachModeBtn: $('coachModeBtn'),
+        quarterLength: $('quarterLength'), onGroundTarget: $('onGroundTarget'), defQuota: $('defQuota'), midQuota: $('midQuota'), fwdQuota: $('fwdQuota'), preset666: $('preset666'), preset756: $('preset756'), preset657: $('preset657'),
+        defaultWarn: $('defaultWarn'), defaultDanger: $('defaultDanger'), midWarn: $('midWarn'), midDanger: $('midDanger'), fwdWarn: $('fwdWarn'), fwdDanger: $('fwdDanger'), defWarn: $('defWarn'), defDanger: $('defDanger'),
+        oppClrValue: $('oppClrValue'), oppI50Value: $('oppI50Value'), oppR50Value: $('oppR50Value'), oppTklValue: $('oppTklValue'),
+        playersCount: $('playersCount'), onGroundCount: $('onGroundCount'), benchCount: $('benchCount'), interchangesCount: $('interchangesCount'), teamClearances: $('teamClearances'), teamI50s: $('teamI50s'), teamR50s: $('teamR50s'), teamGoalsMini: $('teamGoalsMini'), teamTackles: $('teamTackles'), oppClrMini: $('oppClrMini'), oppI50Mini: $('oppI50Mini'), oppR50Mini: $('oppR50Mini'), oppTklMini: $('oppTklMini'),
+        benchAlert: $('benchAlert'), defLane: $('defLane'), midLane: $('midLane'), fwdLane: $('fwdLane'), benchLane: $('benchLane'), defLaneNote: $('defLaneNote'), midLaneNote: $('midLaneNote'), fwdLaneNote: $('fwdLaneNote'), benchLaneNote: $('benchLaneNote'), quarterGrid: $('quarterGrid'), eventList: $('eventList'),
+        playerModal: $('playerModal'), playerForm: $('playerForm'), playerNumberInput: $('playerNumberInput'), playerNameInput: $('playerNameInput'), playerLineInput: $('playerLineInput'), bulkModal: $('bulkModal'), bulkForm: $('bulkForm'), bulkNamesInput: $('bulkNamesInput'),
+        summaryModal: $('summaryModal'), summaryWrap: $('summaryWrap'), copySummaryBtn: $('copySummaryBtn'), downloadCsvBtn: $('downloadCsvBtn'),
+        sheetName: $('sheetName'), sheetSelect: $('sheetSelect'), saveSheetBtn: $('saveSheetBtn'), loadSheetBtn: $('loadSheetBtn'), deleteSheetBtn: $('deleteSheetBtn')
+      };
+
+      var state = loadState();
+      var timerId = null;
+      var draggedId = null;
+
+      function loadState() {
+        try {
+          var raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return clone(DEFAULT_STATE);
+          var parsed = JSON.parse(raw);
+          var base = clone(DEFAULT_STATE);
+          for (var key in parsed) if (Object.prototype.hasOwnProperty.call(parsed, key)) base[key] = parsed[key];
+          if (!base.roleWindows) base.roleWindows = clone(DEFAULT_STATE.roleWindows);
+          if (!base.lineQuotas) base.lineQuotas = clone(DEFAULT_STATE.lineQuotas);
+          if (!base.oppositionStats) base.oppositionStats = clone(DEFAULT_STATE.oppositionStats);
+          if (!base.teamSheets) base.teamSheets = {};
+          if (!Array.isArray(base.players)) base.players = [];
+          if (!Array.isArray(base.eventLog)) base.eventLog = [];
+          return base;
+        } catch (e) { return clone(DEFAULT_STATE); }
+      }
+      function saveState() {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+        catch (e) { if (window.console && console.warn) console.warn('Unable to save state', e); }
+      }
+      function clamp(value, min, max, fallback) {
+        var num = parseInt(value, 10);
+        if (isNaN(num)) return fallback;
+        if (num < min) return min;
+        if (num > max) return max;
+        return num;
+      }
+      function formatTime(totalSeconds) {
+        var mins = Math.floor(totalSeconds / 60);
+        var secs = totalSeconds % 60;
+        return pad2(mins) + ':' + pad2(secs);
+      }
+      function quarterTimestamp() { return 'Q' + state.quarter + ' ' + formatTime(state.quarterClockSeconds); }
+      function escapeHtml(value) {
+        return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+      function normaliseLane(value) {
+        var v = String(value || '').toUpperCase().trim();
+        if (v.indexOf('DEF') >= 0 || v.indexOf('BACK') >= 0) return 'DEF';
+        if (v.indexOf('MID') >= 0 || v.indexOf('WING') >= 0) return 'MID';
+        if (v.indexOf('FWD') >= 0 || v.indexOf('FORW') >= 0) return 'FWD';
+        return 'BENCH';
+      }
+      function numberText(value) {
+        var v = String(value == null ? '' : value).trim();
+        return v === '' ? '—' : v;
+      }
+      function getRoleWindow(player) {
+        if (player.line === 'DEF') return state.roleWindows.def;
+        if (player.line === 'MID') return state.roleWindows.mid;
+        if (player.line === 'FWD') return state.roleWindows.fwd;
+        return state.roleWindows.default;
+      }
+      function heatClass(player) {
+        var window = getRoleWindow(player);
+        if (player.onGround && player.currentStintSeconds >= window.danger * 60) return 'hot';
+        if (player.onGround && player.currentStintSeconds >= window.warn * 60) return 'warn';
+        return 'ok';
+      }
+      function addEvent(text) {
+        state.eventLog.unshift({ time: quarterTimestamp(), text: text });
+        if (state.eventLog.length > 80) state.eventLog = state.eventLog.slice(0, 80);
+      }
+      function openModal(modal, focusEl) { modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); if (focusEl) setTimeout(function () { focusEl.focus(); }, 30); }
+      function closeModal(modal) { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); }
+      function createPlayer(number, name, line) {
+        var lane = normaliseLane(line);
+        return {
+          id: state.nextId,
+          number: numberText(number),
+          name: name,
+          line: lane,
+          onGround: lane !== 'BENCH',
+          totalSeconds: 0,
+          currentStintSeconds: 0,
+          currentBenchSeconds: 0,
+          interchanges: 0,
+          lastMove: lane === 'BENCH' ? quarterTimestamp() + ' to BENCH' : quarterTimestamp() + ' to ' + lane,
+          clearances: 0,
+          inside50s: 0,
+          rebound50s: 0,
+          tackles: 0,
+          marks: 0,
+          disposals: 0,
+          goals: 0,
+          quarterSeconds: [0,0,0,0]
+        };
+      }
+
+      function hydrateInputs() {
+        document.body.classList.toggle('coach-mode', !!state.coachMode);
+        els.coachModeBtn.textContent = state.coachMode ? '🎯 Coach Mode On' : '🎯 Coach Mode';
+        els.teamName.value = state.teamName;
+        els.oppName.value = state.oppName;
+        els.quarterLength.value = state.quarterLengthMinutes;
+        els.onGroundTarget.value = state.onGroundTarget;
+        els.defQuota.value = state.lineQuotas.DEF;
+        els.midQuota.value = state.lineQuotas.MID;
+        els.fwdQuota.value = state.lineQuotas.FWD;
+        els.defaultWarn.value = state.roleWindows.default.warn;
+        els.defaultDanger.value = state.roleWindows.default.danger;
+        els.midWarn.value = state.roleWindows.mid.warn;
+        els.midDanger.value = state.roleWindows.mid.danger;
+        els.fwdWarn.value = state.roleWindows.fwd.warn;
+        els.fwdDanger.value = state.roleWindows.fwd.danger;
+        els.defWarn.value = state.roleWindows.def.warn;
+        els.defDanger.value = state.roleWindows.def.danger;
+        refreshSheetSelect();
+        setFilterChips();
+      }
+
+      function refreshSheetSelect() {
+        var keys = Object.keys(state.teamSheets || {}).sort();
+        var html = keys.length ? keys.map(function (k) { return '<option value="' + escapeHtml(k) + '">' + escapeHtml(k) + '</option>'; }).join('') : '<option value="">No saved sheets</option>';
+        els.sheetSelect.innerHTML = html;
+      }
+
+      function setFilterChips() {
+        var chips = document.querySelectorAll('[data-filter]');
+        for (var i = 0; i < chips.length; i++) chips[i].className = chips[i].getAttribute('data-filter') === state.filterMode ? 'chip active' : 'chip';
+      }
+
+      function bindEvents() {
+        els.teamName.addEventListener('input', function () { state.teamName = els.teamName.value || 'Our Team'; saveState(); renderScoreboard(); });
+        els.oppName.addEventListener('input', function () { state.oppName = els.oppName.value || 'Opponent'; saveState(); renderScoreboard(); });
+        els.teamGoalBtn.addEventListener('click', function () { state.teamGoals += 1; addEvent((state.teamName || 'Our Team') + ' goal'); saveState(); render(); });
+        els.teamBehindBtn.addEventListener('click', function () { state.teamBehinds += 1; addEvent((state.teamName || 'Our Team') + ' behind'); saveState(); render(); });
+        els.oppGoalBtn.addEventListener('click', function () { state.oppGoals += 1; addEvent((state.oppName || 'Opponent') + ' goal'); saveState(); render(); });
+        els.oppBehindBtn.addEventListener('click', function () { state.oppBehinds += 1; addEvent((state.oppName || 'Opponent') + ' behind'); saveState(); render(); });
+
+        els.startPauseBtn.addEventListener('click', function () {
+          state.matchRunning = !state.matchRunning;
+          addEvent(state.matchRunning ? 'Match started' : 'Match paused');
+          saveState(); syncTimer(); render();
+        });
+        els.nextQuarterBtn.addEventListener('click', function () {
+          if (state.quarter < 4) state.quarter += 1;
+          state.quarterClockSeconds = 0;
+          for (var i = 0; i < state.players.length; i++) {
+            if (state.players[i].onGround) state.players[i].interchanges += 1;
+            state.players[i].onGround = false;
+            state.players[i].line = 'BENCH';
+            state.players[i].currentStintSeconds = 0;
+            state.players[i].currentBenchSeconds = 0;
+            state.players[i].lastMove = 'Q' + state.quarter + ' 00:00 to BENCH';
+          }
+          addEvent('Moved to Q' + state.quarter + ' and reset visible quarter clock');
+          saveState(); render();
+        });
+
+        els.addPlayerBtn.addEventListener('click', function () { openModal(els.playerModal, els.playerNumberInput); });
+        els.bulkAddBtn.addEventListener('click', function () { openModal(els.bulkModal, els.bulkNamesInput); });
+        els.summaryBtn.addEventListener('click', function () { buildSummary(); openModal(els.summaryModal); });
+        els.resetBtn.addEventListener('click', function () {
+          if (!window.confirm('Reset the full match, scoreboard, opposition stats and all players/stats?')) return;
+          state = clone(DEFAULT_STATE); hydrateInputs(); saveState(); syncTimer(); render();
+        });
+        function clearAllData() {
+          if (!window.confirm('Clear saved local data on this device?')) return;
+          try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+          state = clone(DEFAULT_STATE); hydrateInputs(); syncTimer(); render();
+        }
+        els.clearSavedBtn.addEventListener('click', clearAllData);
+        els.clearSavedBtnMain.addEventListener('click', clearAllData);
+        els.coachModeBtn.addEventListener('click', function () { state.coachMode = !state.coachMode; hydrateInputs(); saveState(); render(); });
+
+        els.quarterLength.addEventListener('change', function () { state.quarterLengthMinutes = clamp(els.quarterLength.value, 5, 30, 20); hydrateInputs(); saveState(); render(); });
+        els.onGroundTarget.addEventListener('change', function () { state.onGroundTarget = clamp(els.onGroundTarget.value, 10, 18, 18); hydrateInputs(); saveState(); render(); });
+        els.defQuota.addEventListener('change', function () { state.lineQuotas.DEF = clamp(els.defQuota.value, 0, 18, 6); hydrateInputs(); saveState(); render(); });
+        els.midQuota.addEventListener('change', function () { state.lineQuotas.MID = clamp(els.midQuota.value, 0, 18, 6); hydrateInputs(); saveState(); render(); });
+        els.fwdQuota.addEventListener('change', function () { state.lineQuotas.FWD = clamp(els.fwdQuota.value, 0, 18, 6); hydrateInputs(); saveState(); render(); });
+        els.preset666.addEventListener('click', function () { state.lineQuotas = { DEF: 6, MID: 6, FWD: 6 }; hydrateInputs(); saveState(); render(); addEvent('Applied quota preset 6 | 6 | 6'); });
+        els.preset756.addEventListener('click', function () { state.lineQuotas = { DEF: 7, MID: 5, FWD: 6 }; hydrateInputs(); saveState(); render(); addEvent('Applied quota preset 7 | 5 | 6'); });
+        els.preset657.addEventListener('click', function () { state.lineQuotas = { DEF: 6, MID: 5, FWD: 7 }; hydrateInputs(); saveState(); render(); addEvent('Applied quota preset 6 | 5 | 7'); });
+
+        function normaliseWindow(key, warnEl, dangerEl, defWarn, defDanger) {
+          var warn = clamp(warnEl.value, 1, 40, defWarn);
+          var danger = clamp(dangerEl.value, 1, 40, defDanger);
+          if (warn > danger) warn = danger;
+          state.roleWindows[key] = { warn: warn, danger: danger };
+          hydrateInputs(); saveState(); render();
+        }
+        els.defaultWarn.addEventListener('change', function () { normaliseWindow('default', els.defaultWarn, els.defaultDanger, 8, 12); });
+        els.defaultDanger.addEventListener('change', function () { normaliseWindow('default', els.defaultWarn, els.defaultDanger, 8, 12); });
+        els.midWarn.addEventListener('change', function () { normaliseWindow('mid', els.midWarn, els.midDanger, 6, 9); });
+        els.midDanger.addEventListener('change', function () { normaliseWindow('mid', els.midWarn, els.midDanger, 6, 9); });
+        els.fwdWarn.addEventListener('change', function () { normaliseWindow('fwd', els.fwdWarn, els.fwdDanger, 8, 11); });
+        els.fwdDanger.addEventListener('change', function () { normaliseWindow('fwd', els.fwdWarn, els.fwdDanger, 8, 11); });
+        els.defWarn.addEventListener('change', function () { normaliseWindow('def', els.defWarn, els.defDanger, 9, 13); });
+        els.defDanger.addEventListener('change', function () { normaliseWindow('def', els.defWarn, els.defDanger, 9, 13); });
+
+        els.playerForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var number = numberText(els.playerNumberInput.value || '');
+          var name = (els.playerNameInput.value || '').trim();
+          var line = normaliseLane(els.playerLineInput.value || 'BENCH');
+          if (!name) { els.playerNameInput.focus(); return; }
+          state.players.push(createPlayer(number, name, line)); state.nextId += 1; addEvent('#' + number + ' ' + name + ' added to ' + line); els.playerForm.reset(); closeModal(els.playerModal); saveState(); render();
+        });
+
+        els.bulkForm.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var lines = (els.bulkNamesInput.value || '').split(/\r?\n/); var added = 0;
+          for (var i = 0; i < lines.length; i++) {
+            var raw = lines[i].trim(); if (!raw) continue;
+            var parts = raw.split(' - ');
+            var number = '';
+            var name = '';
+            var line = 'BENCH';
+            if (parts.length >= 3) {
+              number = numberText(parts[0]);
+              name = (parts[1] || '').trim();
+              line = normaliseLane(parts.slice(2).join(' - '));
+            } else if (parts.length === 2) {
+              if (/^\d+$/.test(parts[0].trim())) { number = numberText(parts[0]); name = (parts[1] || '').trim(); }
+              else { name = (parts[0] || '').trim(); line = normaliseLane(parts[1] || 'BENCH'); }
+            } else {
+              name = raw;
+            }
+            if (!name) continue;
+            state.players.push(createPlayer(number, name, line)); state.nextId += 1; added += 1;
+          }
+          if (!added) { els.bulkNamesInput.focus(); return; }
+          addEvent('Bulk added ' + added + ' players'); els.bulkForm.reset(); closeModal(els.bulkModal); saveState(); render();
+        });
+
+        els.copySummaryBtn.addEventListener('click', function () { copyText(buildSummaryText()); });
+        els.downloadCsvBtn.addEventListener('click', downloadCsv);
+
+        els.saveSheetBtn.addEventListener('click', function () {
+          var name = (els.sheetName.value || '').trim();
+          if (!name) { els.sheetName.focus(); return; }
+          state.teamSheets[name] = state.players.map(function (p) { return { number: p.number, name: p.name, line: p.line }; });
+          addEvent('Saved team sheet ' + name);
+          hydrateInputs(); saveState();
+        });
+        els.loadSheetBtn.addEventListener('click', function () {
+          var key = els.sheetSelect.value;
+          if (!key || !state.teamSheets[key]) return;
+          state.players = [];
+          for (var i = 0; i < state.teamSheets[key].length; i++) {
+            var p = state.teamSheets[key][i];
+            state.players.push(createPlayer(p.number, p.name, p.line));
+            state.nextId += 1;
+          }
+          addEvent('Loaded team sheet ' + key);
+          saveState(); render();
+        });
+        els.deleteSheetBtn.addEventListener('click', function () {
+          var key = els.sheetSelect.value;
+          if (!key || !state.teamSheets[key]) return;
+          if (!window.confirm('Delete saved team sheet ' + key + '?')) return;
+          delete state.teamSheets[key];
+          addEvent('Deleted team sheet ' + key);
+          hydrateInputs(); saveState();
+        });
+
+        document.addEventListener('click', function (e) {
+          var closeBtn = e.target.closest('[data-close]');
+          if (closeBtn) { closeModal($(closeBtn.getAttribute('data-close'))); return; }
+          if (e.target.classList.contains('modal')) { closeModal(e.target); return; }
+
+          var oppBtn = e.target.closest('[data-opp-stat]');
+          if (oppBtn) {
+            var stat = oppBtn.getAttribute('data-opp-stat');
+            var delta = parseInt(oppBtn.getAttribute('data-delta'), 10) || 0;
+            updateOppStat(stat, delta);
+            return;
+          }
+
+          var chip = e.target.closest('[data-filter]');
+          if (chip) { state.filterMode = chip.getAttribute('data-filter'); saveState(); hydrateInputs(); render(); return; }
+
+          var actionEl = e.target.closest('[data-action]');
+          if (!actionEl) return;
+          var action = actionEl.getAttribute('data-action');
+          var id = parseInt(actionEl.getAttribute('data-id'), 10);
+          var statKey = actionEl.getAttribute('data-stat');
+          var lane = actionEl.getAttribute('data-lane');
+          if (action === 'move' && lane) { movePlayerToLane(parseInt(actionEl.getAttribute('data-id'), 10), lane); return; }
+          if (isNaN(id)) return;
+          if (action === 'remove') { removePlayer(id); return; }
+          if (action === 'stat-add' || action === 'stat-subtract') { updatePlayerStat(id, statKey, action === 'stat-add' ? 1 : -1); }
+        });
+
+        bindDnD();
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModal(els.playerModal); closeModal(els.bulkModal); closeModal(els.summaryModal); } });
+      }
+
+      function bindDnD() {
+        var zones = document.querySelectorAll('[data-drop-zone]');
+        for (var i = 0; i < zones.length; i++) {
+          zones[i].addEventListener('dragover', function (e) { e.preventDefault(); this.classList.add('drag-over'); });
+          zones[i].addEventListener('dragleave', function () { this.classList.remove('drag-over'); });
+          zones[i].addEventListener('drop', function (e) {
+            e.preventDefault(); this.classList.remove('drag-over');
+            var lane = this.getAttribute('data-drop-zone');
+            if (draggedId !== null) movePlayerToLane(draggedId, lane);
+          });
+        }
+      }
+
+      function updateOppStat(stat, delta) {
+        if (!state.oppositionStats.hasOwnProperty(stat)) return;
+        state.oppositionStats[stat] = Math.max(0, (parseInt(state.oppositionStats[stat], 10) || 0) + delta);
+        if (delta > 0) addEvent((state.oppName || 'Opponent') + ' +' + stat.toUpperCase());
+        saveState(); render();
+      }
+
+      function movePlayerToLane(id, lane) {
+        var p = findPlayer(id); if (!p) return;
+        lane = normaliseLane(lane);
+        var willBeOnGround = lane !== 'BENCH';
+        if (p.line === lane && p.onGround === willBeOnGround) return;
+        p.line = lane;
+        p.onGround = willBeOnGround;
+        p.currentStintSeconds = 0;
+        p.currentBenchSeconds = 0;
+        p.interchanges += 1;
+        p.lastMove = quarterTimestamp() + ' to ' + lane;
+        addEvent('#' + p.number + ' ' + p.name + ' moved to ' + lane);
+        saveState(); render();
+      }
+
+      function findPlayer(id) { for (var i = 0; i < state.players.length; i++) if (state.players[i].id === id) return state.players[i]; return null; }
+      function statLabel(stat) { var map = { clearances:'CLR', inside50s:'I50', rebound50s:'R50', tackles:'TKL', marks:'MRK', disposals:'DISP', goals:'GL' }; return map[stat] || stat; }
+      function removePlayer(id) {
+        var p = findPlayer(id); if (!p) return;
+        if (!window.confirm('Remove ' + p.name + '?')) return;
+        state.players = state.players.filter(function (x) { return x.id !== id; }); addEvent('#' + p.number + ' ' + p.name + ' removed'); saveState(); render();
+      }
+      function updatePlayerStat(id, stat, delta) {
+        var p = findPlayer(id); if (!p) return;
+        var allowed = ['clearances','inside50s','rebound50s','tackles','marks','disposals','goals'];
+        if (allowed.indexOf(stat) === -1) return;
+        p[stat] = Math.max(0, (parseInt(p[stat], 10) || 0) + delta);
+        if (delta > 0) addEvent('#' + p.number + ' ' + p.name + ' +' + statLabel(stat));
+        saveState(); render();
+      }
+
+      function syncTimer() {
+        if (timerId) { clearInterval(timerId); timerId = null; }
+        if (state.matchRunning) {
+          timerId = setInterval(function () {
+            state.totalMatchSeconds += 1;
+            state.quarterClockSeconds += 1;
+            for (var i = 0; i < state.players.length; i++) {
+              if (state.players[i].onGround) {
+                state.players[i].totalSeconds += 1;
+                state.players[i].currentStintSeconds += 1;
+                if (state.quarter >= 1 && state.quarter <= 4) state.players[i].quarterSeconds[state.quarter - 1] += 1;
+              } else {
+                state.players[i].currentBenchSeconds += 1;
+              }
+            }
+            saveState(); render();
+          }, 1000);
+        }
+      }
+
+      function totals() {
+        var t = { onGround: 0, bench: 0, interchanges: 0, clearances: 0, inside50s: 0, rebound50s: 0, tackles: 0, marks: 0, disposals: 0, goals: 0 };
+        for (var i = 0; i < state.players.length; i++) {
+          var p = state.players[i];
+          if (p.onGround) t.onGround += 1; else t.bench += 1;
+          t.interchanges += parseInt(p.interchanges, 10) || 0;
+          t.clearances += parseInt(p.clearances, 10) || 0;
+          t.inside50s += parseInt(p.inside50s, 10) || 0;
+          t.rebound50s += parseInt(p.rebound50s, 10) || 0;
+          t.tackles += parseInt(p.tackles, 10) || 0;
+          t.marks += parseInt(p.marks, 10) || 0;
+          t.disposals += parseInt(p.disposals, 10) || 0;
+          t.goals += parseInt(p.goals, 10) || 0;
+        }
+        return t;
+      }
+
+      function getFilteredPlayers(arr) {
+        if (state.filterMode === 'active') return arr.filter(function (p) { return p.onGround; });
+        if (state.filterMode === 'bench') return arr.filter(function (p) { return !p.onGround; });
+        return arr;
+      }
+
+      function lineCounts(players) {
+        return {
+          DEF: players.filter(function (p) { return p.line === 'DEF'; }).length,
+          MID: players.filter(function (p) { return p.line === 'MID'; }).length,
+          FWD: players.filter(function (p) { return p.line === 'FWD'; }).length,
+          BENCH: players.filter(function (p) { return p.line === 'BENCH'; }).length
+        };
+      }
+
+      function render() {
+        document.body.classList.toggle('coach-mode', !!state.coachMode);
+        els.quarterClock.textContent = formatTime(state.quarterClockSeconds);
+        els.quarterPill.textContent = 'Q' + state.quarter;
+        els.startPauseBtn.textContent = state.matchRunning ? '⏸ Pause Match' : '▶ Start Match';
+        els.startPauseBtn.className = 'btn ' + (state.matchRunning ? 'orange' : 'green');
+        els.coachModeBtn.textContent = state.coachMode ? '🎯 Coach Mode On' : '🎯 Coach Mode';
+
+        var t = totals();
+        els.playersCount.textContent = String(state.players.length);
+        els.onGroundCount.textContent = String(t.onGround);
+        els.benchCount.textContent = String(t.bench);
+        els.interchangesCount.textContent = String(t.interchanges);
+        els.teamClearances.textContent = String(t.clearances);
+        els.teamI50s.textContent = String(t.inside50s);
+        els.teamR50s.textContent = String(t.rebound50s);
+        els.teamGoalsMini.textContent = String(t.goals);
+        els.teamTackles.textContent = String(t.tackles);
+        els.oppClrValue.textContent = String(state.oppositionStats.clearances);
+        els.oppI50Value.textContent = String(state.oppositionStats.inside50s);
+        els.oppR50Value.textContent = String(state.oppositionStats.rebound50s);
+        els.oppTklValue.textContent = String(state.oppositionStats.tackles);
+        els.oppClrMini.textContent = String(state.oppositionStats.clearances);
+        els.oppI50Mini.textContent = String(state.oppositionStats.inside50s);
+        els.oppR50Mini.textContent = String(state.oppositionStats.rebound50s);
+        els.oppTklMini.textContent = String(state.oppositionStats.tackles);
+
+        var counts = lineCounts(state.players);
+        var alerts = [];
+        if (t.onGround !== state.onGroundTarget) {
+          var diff = t.onGround - state.onGroundTarget;
+          alerts.push(diff > 0 ? 'Too many on ground: +' + diff : 'Under target on ground: ' + Math.abs(diff) + ' short');
+        }
+        if (counts.DEF !== state.lineQuotas.DEF) alerts.push('DEF quota ' + counts.DEF + '/' + state.lineQuotas.DEF);
+        if (counts.MID !== state.lineQuotas.MID) alerts.push('MID quota ' + counts.MID + '/' + state.lineQuotas.MID);
+        if (counts.FWD !== state.lineQuotas.FWD) alerts.push('FWD quota ' + counts.FWD + '/' + state.lineQuotas.FWD);
+        els.benchAlert.innerHTML = alerts.length ? '<div class="bench-alert">Rotation alert — ' + alerts.join(' | ') + '</div>' : '';
+
+        renderScoreboard(); renderLanes(); renderQuarterGrid(); renderEventLog(); refreshSheetSelect();
+      }
+
+      function renderScoreboard() {
+        var ourScore = score(state.teamGoals, state.teamBehinds); var oppScore = score(state.oppGoals, state.oppBehinds); var margin = ourScore - oppScore;
+        els.teamScoreValue.textContent = String(ourScore); els.oppScoreValue.textContent = String(oppScore);
+        els.teamBreakdown.textContent = state.teamGoals + '.' + state.teamBehinds + ' (' + ourScore + ')';
+        els.oppBreakdown.textContent = state.oppGoals + '.' + state.oppBehinds + ' (' + oppScore + ')';
+        els.marginValue.textContent = (margin > 0 ? '+' : '') + margin;
+        if (margin > 0) { els.marginChip.className = 'margin-chip margin-win'; els.marginChip.textContent = 'Leading'; }
+        else if (margin < 0) { els.marginChip.className = 'margin-chip margin-lose'; els.marginChip.textContent = 'Trailing'; }
+        else { els.marginChip.className = 'margin-chip margin-draw'; els.marginChip.textContent = 'Level'; }
+      }
+
+      function sortPlayers(a, b) { return b.totalSeconds - a.totalSeconds; }
+
+      function renderLanes() {
+        var filtered = getFilteredPlayers(state.players.slice().sort(sortPlayers));
+        var defs = filtered.filter(function (p) { return p.line === 'DEF'; });
+        var mids = filtered.filter(function (p) { return p.line === 'MID'; });
+        var fwds = filtered.filter(function (p) { return p.line === 'FWD'; });
+        var bench = filtered.filter(function (p) { return p.line === 'BENCH'; });
+        els.defLaneNote.textContent = defs.length + ' players';
+        els.midLaneNote.textContent = mids.length + ' players';
+        els.fwdLaneNote.textContent = fwds.length + ' players';
+        els.benchLaneNote.textContent = bench.length + ' players';
+        els.defLane.innerHTML = renderCardsGrid(defs, 'DEF');
+        els.midLane.innerHTML = renderCardsGrid(mids, 'MID');
+        els.fwdLane.innerHTML = renderCardsGrid(fwds, 'FWD');
+        els.benchLane.innerHTML = renderCardsGrid(bench, 'BENCH');
+        attachCardDnD();
+      }
+
+      function renderCardsGrid(players, lane) {
+        if (!players.length) return '<div class="empty">No players in ' + lane + '.</div>';
+        var html = '<div class="cards-grid">';
+        for (var i = 0; i < players.length; i++) html += renderCard(players[i]);
+        html += '</div>'; return html;
+      }
+
+      function renderCard(p) {
+        var window = getRoleWindow(p);
+        var status = p.line.toLowerCase();
+        if (p.onGround && p.currentStintSeconds >= window.danger * 60) status += ' danger';
+        else if (p.onGround && p.currentStintSeconds >= window.warn * 60) status += ' warning';
+        var progress = p.onGround ? Math.min(100, Math.round((p.currentStintSeconds / Math.max(1, window.danger * 60)) * 100)) : 0;
+        var heat = heatClass(p) === 'hot' ? '<span class="heat-badge heat-hot">HOT</span>' : (heatClass(p) === 'warn' ? '<span class="heat-badge heat-warn">WARM</span>' : '<span class="heat-badge heat-ok">FRESH</span>');
+        var thresholdLabel = '<span class="threshold-badge">' + p.line + ' ' + window.warn + '/' + window.danger + 'm</span>';
+        var lastMove = p.lastMove ? '<div class="sub-meta">Last move: ' + escapeHtml(p.lastMove) + '</div>' : '';
+        return '' +
+          '<article class="card draggable ' + status + '" draggable="true" data-player-id="' + p.id + '">' +
+            '<div class="card-main">' +
+              '<div>' +
+                '<div class="name-row"><div class="name-wrap"><span class="number-badge">' + escapeHtml(p.number) + '</span><div class="name">' + escapeHtml(p.name) + '</div></div><span class="tag">' + p.line + '</span></div>' + thresholdLabel + heat +
+                '<div class="meta"><span>Total <strong>' + formatTime(p.totalSeconds) + '</strong></span><span>Stint <strong>' + formatTime(p.currentStintSeconds) + '</strong></span><span>Bench <strong>' + formatTime(p.currentBenchSeconds) + '</strong></span><span>INT <strong>' + (parseInt(p.interchanges, 10) || 0) + '</strong></span></div>' + lastMove +
+                '<div class="bar"><div class="bar-fill" style="width:' + progress + '%"></div></div>' +
+                '<div class="move-row">' + moveButton(p.id, 'DEF') + moveButton(p.id, 'MID') + moveButton(p.id, 'FWD') + moveButton(p.id, 'BENCH') + '</div>' +
+              '</div>' +
+              '<div class="card-actions"><button class="btn ghost small" data-action="remove" data-id="' + p.id + '">Remove</button></div>' +
+            '</div>' +
+            '<div class="stats">' + statTile(p.id, 'CLR', p.clearances, 'clearances') + statTile(p.id, 'I50', p.inside50s, 'inside50s') + statTile(p.id, 'R50', p.rebound50s, 'rebound50s') + statTile(p.id, 'TKL', p.tackles, 'tackles') + statTile(p.id, 'MRK', p.marks, 'marks') + statTile(p.id, 'DISP', p.disposals, 'disposals') + statTile(p.id, 'GL', p.goals, 'goals') + '</div>' +
+          '</article>';
+      }
+
+      function moveButton(id, lane) { return '<button class="move-btn" data-action="move" data-id="' + id + '" data-lane="' + lane + '">' + lane + '</button>'; }
+      function statTile(id, label, value, statKey) { return '<div class="stat" data-action="stat-add" data-id="' + id + '" data-stat="' + statKey + '"><div class="stat-label">' + label + '</div><div class="stat-value">' + (parseInt(value, 10) || 0) + '</div><div class="stat-sub" data-action="stat-subtract" data-id="' + id + '" data-stat="' + statKey + '">undo</div></div>'; }
+
+      function attachCardDnD() {
+        var cards = document.querySelectorAll('.card.draggable');
+        for (var i = 0; i < cards.length; i++) {
+          cards[i].addEventListener('dragstart', function (e) {
+            draggedId = parseInt(this.getAttribute('data-player-id'), 10);
+            this.classList.add('dragging');
+            try { e.dataTransfer.setData('text/plain', String(draggedId)); } catch (err) {}
+          });
+          cards[i].addEventListener('dragend', function () { this.classList.remove('dragging'); draggedId = null; });
+        }
+      }
+
+      function renderQuarterGrid() {
+        var totalsByQuarter = [0,0,0,0];
+        for (var i = 0; i < state.players.length; i++) {
+          for (var q = 0; q < 4; q++) totalsByQuarter[q] += parseInt(state.players[i].quarterSeconds[q], 10) || 0;
+        }
+        var html = '';
+        for (var j = 0; j < 4; j++) html += '<div class="quarter-box"><div class="q">Q' + (j + 1) + '</div><div class="t">' + formatTime(totalsByQuarter[j]) + '</div></div>';
+        els.quarterGrid.innerHTML = html;
+      }
+
+      function renderEventLog() {
+        if (!state.eventLog.length) { els.eventList.innerHTML = '<div class="event-item">No events yet.</div>'; return; }
+        var html = '';
+        for (var i = 0; i < state.eventLog.length; i++) html += '<div class="event-item"><span class="event-time">' + escapeHtml(state.eventLog[i].time) + '</span>' + escapeHtml(state.eventLog[i].text) + '</div>';
+        els.eventList.innerHTML = html;
+      }
+
+      function buildSummary() {
+        var sorted = state.players.slice().sort(function (a, b) { return b.totalSeconds - a.totalSeconds; });
+        var html = '<table><thead><tr><th>No.</th><th>Player</th><th>Lane</th><th>Window</th><th>Total Time</th><th>Bench Time</th><th>INT</th><th>Last Move</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th><th>CLR</th><th>I50</th><th>R50</th><th>TKL</th><th>MRK</th><th>DISP</th><th>GL</th></tr></thead><tbody>';
+        if (!sorted.length) html += '<tr><td colspan="19">No players added yet.</td></tr>';
+        else {
+          for (var i = 0; i < sorted.length; i++) {
+            var p = sorted[i], w = getRoleWindow(p);
+            html += '<tr><td class="num">' + escapeHtml(p.number) + '</td><td>' + escapeHtml(p.name) + '</td><td>' + p.line + '</td><td class="num">' + p.line + ' ' + w.warn + '/' + w.danger + '</td><td class="num">' + formatTime(p.totalSeconds) + '</td><td class="num">' + formatTime(p.currentBenchSeconds) + '</td><td class="num">' + (parseInt(p.interchanges, 10) || 0) + '</td><td>' + escapeHtml(p.lastMove || '') + '</td><td class="num">' + formatTime(p.quarterSeconds[0] || 0) + '</td><td class="num">' + formatTime(p.quarterSeconds[1] || 0) + '</td><td class="num">' + formatTime(p.quarterSeconds[2] || 0) + '</td><td class="num">' + formatTime(p.quarterSeconds[3] || 0) + '</td><td class="num">' + (parseInt(p.clearances, 10) || 0) + '</td><td class="num">' + (parseInt(p.inside50s, 10) || 0) + '</td><td class="num">' + (parseInt(p.rebound50s, 10) || 0) + '</td><td class="num">' + (parseInt(p.tackles, 10) || 0) + '</td><td class="num">' + (parseInt(p.marks, 10) || 0) + '</td><td class="num">' + (parseInt(p.disposals, 10) || 0) + '</td><td class="num">' + (parseInt(p.goals, 10) || 0) + '</td></tr>';
+          }
+        }
+        html += '</tbody></table>';
+        els.summaryWrap.innerHTML = html;
+      }
+
+      function buildSummaryText() {
+        var lines = [];
+        var t = totals();
+        lines.push((state.teamName || 'Our Team') + ' ' + state.teamGoals + '.' + state.teamBehinds + ' (' + score(state.teamGoals, state.teamBehinds) + ') vs ' + (state.oppName || 'Opponent') + ' ' + state.oppGoals + '.' + state.oppBehinds + ' (' + score(state.oppGoals, state.oppBehinds) + ')');
+        lines.push('Opposition team stats | CLR ' + state.oppositionStats.clearances + ' | I50 ' + state.oppositionStats.inside50s + ' | R50 ' + state.oppositionStats.rebound50s + ' | TKL ' + state.oppositionStats.tackles);
+        lines.push('Current quarter: Q' + state.quarter + ' | Quarter Clock ' + formatTime(state.quarterClockSeconds) + ' | Total elapsed ' + formatTime(state.totalMatchSeconds) + ' | On Ground ' + t.onGround + ' | Bench ' + t.bench + ' | Interchanges ' + t.interchanges);
+        lines.push('No | Player | Lane | Window | Time | Bench | INT | Last Move | Q1 | Q2 | Q3 | Q4 | CLR | I50 | R50 | TKL | MRK | DISP | GL');
+        lines.push('--------------------------------------------------------------------------------------------------------------------------------');
+        var sorted = state.players.slice().sort(function (a, b) { return b.totalSeconds - a.totalSeconds; });
+        for (var i = 0; i < sorted.length; i++) {
+          var p = sorted[i], w = getRoleWindow(p);
+          lines.push(numberText(p.number) + ' | ' + p.name + ' | ' + p.line + ' | ' + p.line + ' ' + w.warn + '/' + w.danger + ' | ' + formatTime(p.totalSeconds) + ' | ' + formatTime(p.currentBenchSeconds) + ' | ' + (p.interchanges || 0) + ' | ' + (p.lastMove || '') + ' | ' + formatTime(p.quarterSeconds[0] || 0) + ' | ' + formatTime(p.quarterSeconds[1] || 0) + ' | ' + formatTime(p.quarterSeconds[2] || 0) + ' | ' + formatTime(p.quarterSeconds[3] || 0) + ' | ' + (p.clearances || 0) + ' | ' + (p.inside50s || 0) + ' | ' + (p.rebound50s || 0) + ' | ' + (p.tackles || 0) + ' | ' + (p.marks || 0) + ' | ' + (p.disposals || 0) + ' | ' + (p.goals || 0));
+        }
+        return lines.join('\n');
+      }
+
+      function copyText(text) {
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { alert('Summary copied to clipboard.'); }).catch(function () { fallbackCopy(text); });
+        else fallbackCopy(text);
+      }
+      function fallbackCopy(text) {
+        var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.left = '-9999px'; document.body.appendChild(ta); ta.focus(); ta.select(); document.execCommand('copy'); ta.remove(); alert('Summary copied to clipboard.');
+      }
+      function csvEscape(value) { var str = String(value == null ? '' : value); if (/[",\n]/.test(str)) return '"' + str.replace(/"/g, '""') + '"'; return str; }
+      function downloadCsv() {
+        var rows = [[ 'No','Player','Lane','Window','Total Time','Bench Time','Interchanges','Last Move','Q1','Q2','Q3','Q4','Clearances','Inside 50s','Rebound 50s','Tackles','Marks','Disposals','Goals' ]];
+        var sorted = state.players.slice().sort(function (a, b) { return b.totalSeconds - a.totalSeconds; });
+        for (var i = 0; i < sorted.length; i++) {
+          var p = sorted[i], w = getRoleWindow(p);
+          rows.push([numberText(p.number), p.name, p.line, p.line + ' ' + w.warn + '/' + w.danger, formatTime(p.totalSeconds), formatTime(p.currentBenchSeconds), p.interchanges, p.lastMove || '', formatTime(p.quarterSeconds[0]||0), formatTime(p.quarterSeconds[1]||0), formatTime(p.quarterSeconds[2]||0), formatTime(p.quarterSeconds[3]||0), p.clearances, p.inside50s, p.rebound50s, p.tackles, p.marks, p.disposals, p.goals]);
+        }
+        rows.push([]);
+        rows.push(['Opposition Team Stats','','','','','','','','','','','','Clearances','Inside 50s','Rebound 50s','Tackles']);
+        rows.push(['','','','','','','','','','','','', state.oppositionStats.clearances, state.oppositionStats.inside50s, state.oppositionStats.rebound50s, state.oppositionStats.tackles]);
+        var csv = rows.map(function (row) { return row.map(csvEscape).join(','); }).join('\n');
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob); var a = document.createElement('a'); a.href = url; a.download = 'obgfc-aflw-v9-summary-q' + state.quarter + '.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+      }
+
+      hydrateInputs(); bindEvents(); syncTimer(); render();
+    })();
+  </script>
+</body>
+</html>
