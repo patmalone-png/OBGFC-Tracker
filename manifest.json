@@ -1,0 +1,18 @@
+{
+  "name": "OBGFC Match Tracker",
+  "short_name": "OBGFC Tracker",
+  "description": "AFLW community match tracker with line board, rotation alerts, and stats",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%230f172a'/><text x='50' y='62' text-anchor='middle' font-size='50'>🏉</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
